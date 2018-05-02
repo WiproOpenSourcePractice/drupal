@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block_test\Plugin\Block\TestContextAwareBlock.
- */
-
 namespace Drupal\block_test\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Messenger\MessengerTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\user\UserInterface;
 
@@ -24,17 +20,19 @@ use Drupal\user\UserInterface;
  */
 class TestContextAwareBlock extends BlockBase {
 
+  use MessengerTrait;
+
   /**
    * {@inheritdoc}
    */
   public function build() {
     /** @var $user \Drupal\user\UserInterface */
     $user = $this->getContextValue('user');
-    return array(
+    return [
       '#prefix' => '<div id="' . $this->getPluginId() . '--username">',
       '#suffix' => '</div>',
       '#markup' => $user ? $user->getUsername() : 'No context mapping selected.' ,
-    );
+    ];
   }
 
   /**
@@ -42,7 +40,7 @@ class TestContextAwareBlock extends BlockBase {
    */
   protected function blockAccess(AccountInterface $account) {
     if ($this->getContextValue('user') instanceof UserInterface) {
-      drupal_set_message('User context found.');
+      $this->messenger()->addStatus('User context found.');
     }
 
     return parent::blockAccess($account);

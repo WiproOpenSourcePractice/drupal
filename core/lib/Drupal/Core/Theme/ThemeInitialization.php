@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Theme\ThemeInitialization.
- */
-
 namespace Drupal\Core\Theme;
 
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -44,6 +39,13 @@ class ThemeInitialization implements ThemeInitializationInterface {
    * @var array
    */
   protected $extensions;
+
+  /**
+   * The module handler.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
 
   /**
    * Constructs a new ThemeInitialization object.
@@ -105,7 +107,7 @@ class ThemeInitialization implements ThemeInitializationInterface {
     }
 
     // Find all our ancestor themes and put them in an array.
-    $base_themes = array();
+    $base_themes = [];
     $ancestor = $theme_name;
     while ($ancestor && isset($themes[$ancestor]->base_theme)) {
       $ancestor = $themes[$ancestor]->base_theme;
@@ -225,7 +227,7 @@ class ThemeInitialization implements ThemeInitializationInterface {
     }
 
     // Do basically the same as the above for libraries
-    $values['libraries'] = array();
+    $values['libraries'] = [];
 
     // Grab libraries from base theme
     foreach ($base_themes as $base) {
@@ -247,7 +249,7 @@ class ThemeInitialization implements ThemeInitializationInterface {
     $values['owner'] = isset($theme->owner) ? $theme->owner : NULL;
     $values['extension'] = $theme;
 
-    $base_active_themes = array();
+    $base_active_themes = [];
     foreach ($base_themes as $base_theme) {
       $base_active_themes[$base_theme->getName()] = $this->getActiveTheme($base_theme, array_slice($base_themes, 1));
     }
@@ -315,10 +317,9 @@ class ThemeInitialization implements ThemeInitializationInterface {
     // Prepare stylesheets from this theme as well as all ancestor themes.
     // We work it this way so that we can have child themes remove CSS files
     // easily from parent.
-    $stylesheets_remove = array();
+    $stylesheets_remove = [];
     // Grab stylesheets from base theme.
     foreach ($base_themes as $base) {
-      $base_theme_path = $base->getPath();
       if (!empty($base->info['stylesheets-remove'])) {
         foreach ($base->info['stylesheets-remove'] as $css_file) {
           $css_file = $this->resolveStyleSheetPlaceholders($css_file);

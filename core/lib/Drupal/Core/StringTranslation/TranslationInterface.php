@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\StringTranslation\TranslationInterface.
- */
-
 namespace Drupal\Core\StringTranslation;
 
 /**
@@ -38,7 +33,9 @@ interface TranslationInterface {
    *   - 'langcode' (defaults to the current language): A language code, to
    *     translate to a language other than what is used to display the page.
    *   - 'context' (defaults to the empty context): The context the source
-   *     string belongs to.
+   *     string belongs to. See the
+   *     @link i18n Internationalization topic @endlink for more information
+   *     about string contexts.
    *
    * @return \Drupal\Core\StringTranslation\TranslatableMarkup
    *   An object that, when cast to a string, returns the translated string.
@@ -48,7 +45,7 @@ interface TranslationInterface {
    *
    * @ingroup sanitization
    */
-  public function translate($string, array $args = array(), array $options = array());
+  public function translate($string, array $args = [], array $options = []);
 
   /**
    * Translates a TranslatableMarkup object to a string.
@@ -96,7 +93,7 @@ interface TranslationInterface {
    *   An associative array of replacements to make after translation. Instances
    *   of any key in this array are replaced with the corresponding value.
    *   Based on the first character of the key, the value is escaped and/or
-   *   themed. See \Drupal\Component\Utility\SafeMarkup::format(). Note that you do
+   *   themed. See \Drupal\Component\Render\FormattableMarkup. Note that you do
    *   not need to include @count in this array; this replacement is done
    *   automatically for the plural cases.
    * @param array $options
@@ -107,9 +104,9 @@ interface TranslationInterface {
    *
    * @see \Drupal\Core\StringTranslation\TranslationInterface::translate()
    * @see t()
-   * @see \Drupal\Component\Utility\SafeMarkup::format()
+   * @see \Drupal\Component\Render\FormattableMarkup
    * @see \Drupal\Core\StringTranslation\PluralTranslatableMarkup::createFromTranslatedString()
    */
-  public function formatPlural($count, $singular, $plural, array $args = array(), array $options = array());
+  public function formatPlural($count, $singular, $plural, array $args = [], array $options = []);
 
 }

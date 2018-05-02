@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Asset\CssCollectionRenderer.
- */
-
 namespace Drupal\Core\Asset;
 
 use Drupal\Component\Utility\Html;
@@ -68,7 +63,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
   /**
    * Constructs a CssCollectionRenderer.
    *
-   * @param \Drupal\Core\State\StateInterface
+   * @param \Drupal\Core\State\StateInterface $state
    *   The state key/value store.
    */
   public function __construct(StateInterface $state) {
@@ -79,7 +74,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
    * {@inheritdoc}
    */
   public function render(array $css_assets) {
-    $elements = array();
+    $elements = [];
 
     // A dummy query-string is added to filenames, to gain control over
     // browser-caching. The string changes on every update or full cache
@@ -88,22 +83,22 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
     $query_string = $this->state->get('system.css_js_query_string') ?: '0';
 
     // Defaults for LINK and STYLE elements.
-    $link_element_defaults = array(
+    $link_element_defaults = [
       '#type' => 'html_tag',
       '#tag' => 'link',
-      '#attributes' => array(
+      '#attributes' => [
         'rel' => 'stylesheet',
-      ),
-    );
-    $style_element_defaults = array(
+      ],
+    ];
+    $style_element_defaults = [
       '#type' => 'html_tag',
       '#tag' => 'style',
-    );
+    ];
 
     // For filthy IE hack.
     $current_ie_group_keys = NULL;
     $get_ie_group_key = function ($css_asset) {
-      return array($css_asset['type'], $css_asset['preprocess'], $css_asset['group'], $css_asset['media'], $css_asset['browsers']);
+      return [$css_asset['type'], $css_asset['preprocess'], $css_asset['group'], $css_asset['media'], $css_asset['browsers']];
     };
 
     // Loop through all CSS assets, by key, to allow for the special IE
@@ -135,7 +130,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
           // assets: output a LINK tag for a file CSS asset.
           if (count($css_assets) <= 31) {
             $element = $link_element_defaults;
-            $element['#attributes']['href'] = file_create_url($css_asset['data']) . $query_string_separator . $query_string;
+            $element['#attributes']['href'] = file_url_transform_relative(file_create_url($css_asset['data'])) . $query_string_separator . $query_string;
             $element['#attributes']['media'] = $css_asset['media'];
             $element['#browsers'] = $css_asset['browsers'];
             $elements[] = $element;
@@ -148,7 +143,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
             // LINK tag.
             if (!$css_asset['preprocess']) {
               $element = $link_element_defaults;
-              $element['#attributes']['href'] = file_create_url($css_asset['data']) . $query_string_separator . $query_string;
+              $element['#attributes']['href'] = file_url_transform_relative(file_create_url($css_asset['data'])) . $query_string_separator . $query_string;
               $element['#attributes']['media'] = $css_asset['media'];
               $element['#browsers'] = $css_asset['browsers'];
               $elements[] = $element;
@@ -156,7 +151,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
             // The file CSS asset can be aggregated, but hasn't been: combine
             // multiple items into as few STYLE tags as possible.
             else {
-              $import = array();
+              $import = [];
               // Start with the current CSS asset, iterate over subsequent CSS
               // assets and find which ones have the same 'type', 'group',
               // 'preprocess', 'media' and 'browsers' properties.
@@ -168,7 +163,7 @@ class CssCollectionRenderer implements AssetCollectionRendererInterface {
                 // control browser-caching. IE7 does not support a media type on
                 // the @import statement, so we instead specify the media for
                 // the group on the STYLE tag.
-                $import[] = '@import url("' . Html::escape(file_create_url($next_css_asset['data']) . '?' . $query_string) . '");';
+                $import[] = '@import url("' . Html::escape(file_url_transform_relative(file_create_url($next_css_asset['data'])) . '?' . $query_string) . '");';
                 // Move the outer for loop skip the next item, since we
                 // processed it here.
                 $i = $j;

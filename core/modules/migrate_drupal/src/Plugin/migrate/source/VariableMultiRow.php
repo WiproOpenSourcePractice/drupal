@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate_drupal\Plugin\migrate\source\VariableMultiRow.
- */
-
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
 use Drupal\migrate\Row;
@@ -16,7 +11,8 @@ use Drupal\migrate\Row;
  * variable.
  *
  * @MigrateSource(
- *   id = "variable_multirow"
+ *   id = "variable_multirow",
+ *   source_module = "system",
  * )
  */
 class VariableMultiRow extends DrupalSqlBase {
@@ -26,7 +22,7 @@ class VariableMultiRow extends DrupalSqlBase {
    */
   public function query() {
     return $this->select('variable', 'v')
-      ->fields('v', array('name', 'value'))
+      ->fields('v', ['name', 'value'])
       // Cast scalars to array so we can consistently use an IN condition.
       ->condition('name', (array) $this->configuration['variables'], 'IN');
   }
@@ -35,10 +31,10 @@ class VariableMultiRow extends DrupalSqlBase {
    * {@inheritdoc}
    */
   public function fields() {
-    return array(
+    return [
       'name' => $this->t('Name'),
       'value' => $this->t('Value'),
-    );
+    ];
   }
 
   /**

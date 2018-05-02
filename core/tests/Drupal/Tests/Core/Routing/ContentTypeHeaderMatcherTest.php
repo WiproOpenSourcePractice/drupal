@@ -1,20 +1,19 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Routing\ContentTypeHeaderMatcherTest.
- */
-
 namespace Drupal\Tests\Core\Routing;
 
 use Drupal\Core\Routing\ContentTypeHeaderMatcher;
 use Drupal\Tests\UnitTestCase;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException;
 
 /**
  * Confirm that the content types partial matcher is functioning properly.
  *
  * @group Routing
+ *
+ * @coversDefaultClass \Drupal\Core\Routing\ContentTypeHeaderMatcher
  */
 class ContentTypeHeaderMatcherTest extends UnitTestCase {
 
@@ -43,15 +42,26 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
   }
 
   /**
-   * Tests that routes are not filtered on GET requests.
+   * Tests that routes are not filtered on safe requests.
+   *
+   * @dataProvider providerTestSafeRequestFilter
    */
-  public function testGetRequestFilter() {
+  public function testSafeRequestFilter($method) {
     $collection = $this->fixtures->sampleRouteCollection();
     $collection->addCollection($this->fixtures->contentRouteCollection());
 
-    $request = Request::create('path/two', 'GET');
+    $request = Request::create('path/two', $method);
     $routes = $this->matcher->filter($collection, $request);
     $this->assertEquals(count($routes), 7, 'The correct number of routes was found.');
+  }
+
+  public function providerTestSafeRequestFilter() {
+    return [
+      ['GET'],
+      ['HEAD'],
+      ['OPTIONS'],
+      ['TRACE'],
+    ];
   }
 
   /**
@@ -93,8 +103,7 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
   /**
    * Confirms that the matcher throws an exception for no-route.
    *
-   * @expectedException \Symfony\Component\HttpKernel\Exception\UnsupportedMediaTypeHttpException
-   * @expectedExceptionMessage No route found that matches the Content-Type header.
+   * @covers ::filter
    */
   public function testNoRouteFound() {
     $matcher = new ContentTypeHeaderMatcher();
@@ -102,8 +111,24 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
     $routes = $this->fixtures->contentRouteCollection();
     $request = Request::create('path/two', 'POST');
     $request->headers->set('Content-type', 'application/hal+json');
+    $this->setExpectedException(UnsupportedMediaTypeHttpException::class, 'No route found that matches "Content-Type: application/hal+json"');
     $matcher->filter($routes, $request);
-    $this->fail('No exception was thrown.');
+  }
+
+  /**
+   * Confirms that the matcher throws an exception for missing request header.
+   *
+   * @covers ::filter
+   */
+  public function testContentTypeRequestHeaderMissing() {
+    $matcher = new ContentTypeHeaderMatcher();
+
+    $routes = $this->fixtures->contentRouteCollection();
+    $request = Request::create('path/two', 'POST');
+    // Delete all request headers that Request::create() sets by default.
+    $request->headers = new ParameterBag();
+    $this->setExpectedException(UnsupportedMediaTypeHttpException::class, 'No "Content-Type" request header specified');
+    $matcher->filter($routes, $request);
   }
 
 }

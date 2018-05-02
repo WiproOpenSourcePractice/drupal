@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\taxonomy\TermStorageInterface.
-*/
-
 namespace Drupal\taxonomy;
 
 use Drupal\Core\Entity\EntityInterface;
@@ -20,6 +15,10 @@ interface TermStorageInterface extends ContentEntityStorageInterface {
    *
    * @param array $tids
    *   Array of terms that need to be removed from hierarchy.
+   *
+   * @todo Remove this method in Drupal 9.0.x. Now the parent references are
+   *   automatically cleared when deleting a taxonomy term.
+   *   https://www.drupal.org/node/2785693
    */
   public function deleteTermHierarchy($tids);
 
@@ -28,6 +27,10 @@ interface TermStorageInterface extends ContentEntityStorageInterface {
    *
    * @param \Drupal\Core\Entity\EntityInterface $term
    *   Term entity that needs to be added to term hierarchy information.
+   *
+   * @todo remove this method Drupal 9.0.x. Now the parent references are
+   *   automatically updates when when a taxonomy term is added/updated.
+   *   https://www.drupal.org/node/2785693
    */
   public function updateTermHierarchy(EntityInterface $term);
 
@@ -57,7 +60,7 @@ interface TermStorageInterface extends ContentEntityStorageInterface {
    * Finds all children of a term ID.
    *
    * @param int $tid
-   *   Term ID to retrieve parents for.
+   *   Term ID to retrieve children for.
    * @param string $vid
    *   An optional vocabulary ID to restrict the child search.
    *
@@ -83,7 +86,7 @@ interface TermStorageInterface extends ContentEntityStorageInterface {
    *   table to save execution time and memory consumption when listing large
    *   numbers of terms. Defaults to FALSE.
    *
-   * @return \Drupal\taxonomy\TermInterface[]
+   * @return object[]|\Drupal\taxonomy\TermInterface[]
    *   An array of term objects that are the children of the vocabulary $vid.
    */
   public function loadTree($vid, $parent = 0, $max_depth = NULL, $load_entities = FALSE);
@@ -121,6 +124,6 @@ interface TermStorageInterface extends ContentEntityStorageInterface {
    * @return array
    *   An array of nids and the term entities they were tagged with.
    */
-  public function getNodeTerms(array $nids, array $vocabs = array(), $langcode = NULL);
+  public function getNodeTerms(array $nids, array $vocabs = [], $langcode = NULL);
 
 }

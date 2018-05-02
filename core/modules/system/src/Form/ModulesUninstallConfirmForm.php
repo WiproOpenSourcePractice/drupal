@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Form\ModulesUninstallConfirmForm.
- */
-
 namespace Drupal\system\Form;
 
 use Drupal\Core\Config\ConfigManagerInterface;
@@ -19,6 +14,8 @@ use Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface;
 
 /**
  * Builds a confirmation form to uninstall selected modules.
+ *
+ * @internal
  */
 class ModulesUninstallConfirmForm extends ConfirmFormBase {
   use ConfigDependencyDeleteFormTrait;
@@ -56,7 +53,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
    *
    * @var array
    */
-  protected $modules = array();
+  protected $modules = [];
 
   /**
    * Constructs a ModulesUninstallConfirmForm object.
@@ -134,21 +131,21 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
 
     // Prevent this page from showing when the module list is empty.
     if (empty($this->modules)) {
-      drupal_set_message($this->t('The selected modules could not be uninstalled, either due to a website problem or due to the uninstall confirmation form timing out. Please try again.'), 'error');
+      $this->messenger()->addError($this->t('The selected modules could not be uninstalled, either due to a website problem or due to the uninstall confirmation form timing out. Please try again.'));
       return $this->redirect('system.modules_uninstall');
     }
 
     $data = system_rebuild_module_data();
     $form['text']['#markup'] = '<p>' . $this->t('The following modules will be completely uninstalled from your site, and <em>all data from these modules will be lost</em>!') . '</p>';
-    $form['modules'] = array(
+    $form['modules'] = [
       '#theme' => 'item_list',
       '#items' => array_map(function ($module) use ($data) {
         return $data[$module]->info['name'];
       }, $this->modules),
-    );
+    ];
 
     // List the dependent entities.
-    $this->addDependencyListsToForm($form, 'module', $this->modules , $this->configManager, $this->entityManager);
+    $this->addDependencyListsToForm($form, 'module', $this->modules, $this->configManager, $this->entityManager);
 
     return parent::buildForm($form, $form_state);
   }
@@ -164,7 +161,7 @@ class ModulesUninstallConfirmForm extends ConfirmFormBase {
     // Uninstall the modules.
     $this->moduleInstaller->uninstall($this->modules);
 
-    drupal_set_message($this->t('The selected modules have been uninstalled.'));
+    $this->messenger()->addStatus($this->t('The selected modules have been uninstalled.'));
     $form_state->setRedirectUrl($this->getCancelUrl());
   }
 

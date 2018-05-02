@@ -1,19 +1,20 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\EventSubscriber\CustomPageExceptionHtmlSubscriberTest.
- */
-
 namespace Drupal\Tests\Core\EventSubscriber;
 
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\EventSubscriber\CustomPageExceptionHtmlSubscriber;
+use Drupal\Core\Render\HtmlResponse;
+use Drupal\Core\Routing\AccessAwareRouterInterface;
+use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\Routing\RequestContext;
 
 /**
  * @coversDefaultClass \Drupal\Core\EventSubscriber\CustomPageExceptionHtmlSubscriber
@@ -31,7 +32,7 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
   /**
    * The mocked config factory
    *
-   * @var  \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $configFactory;
 
@@ -70,6 +71,13 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
   protected $accessUnawareRouter;
 
   /**
+   * The access manager.
+   *
+   * @var \Drupal\Core\Access\AccessManagerInterface
+   */
+  protected $accessManager;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -87,8 +95,20 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
       ->willReturn([
         '_controller' => 'mocked',
       ]);
+    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
+    $this->accessManager->expects($this->any())
+      ->method('checkNamedRoute')
+      ->willReturn(AccessResult::allowed()->addCacheTags(['foo', 'bar']));
 
-    $this->customPageSubscriber = new CustomPageExceptionHtmlSubscriber($this->configFactory, $this->kernel, $this->logger, $this->redirectDestination, $this->accessUnawareRouter);
+    $this->customPageSubscriber = new CustomPageExceptionHtmlSubscriber($this->configFactory, $this->kernel, $this->logger, $this->redirectDestination, $this->accessUnawareRouter, $this->accessManager);
+
+    $path_validator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
+    $path_validator->expects($this->any())
+      ->method('getUrlIfValidWithoutAccessCheck')
+      ->willReturn(Url::fromRoute('foo', ['foo' => 'bar']));
+    $container = new ContainerBuilder();
+    $container->set('path.validator', $path_validator);
+    \Drupal::setContainer($container);
 
     // You can't create an exception in PHP without throwing it. Store the
     // current error_log, and disable it temporarily.
@@ -106,10 +126,16 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
    * Tests onHandleException with a POST request.
    */
   public function testHandleWithPostRequest() {
-    $request = Request::create('/test', 'POST', array('name' => 'druplicon', 'pass' => '12345'));
+    $request = Request::create('/test', 'POST', ['name' => 'druplicon', 'pass' => '12345']);
+
+    $request_context = new RequestContext();
+    $request_context->fromRequest($request);
+    $this->accessUnawareRouter->expects($this->any())
+      ->method('getContext')
+      ->willReturn($request_context);
 
     $this->kernel->expects($this->once())->method('handle')->will($this->returnCallback(function (Request $request) {
-      return new Response($request->getMethod());
+      return new HtmlResponse($request->getMethod());
     }));
 
     $event = new GetResponseForExceptionEvent($this->kernel, $request, 'foo', new NotFoundHttpException('foo'));
@@ -119,13 +145,21 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
     $response = $event->getResponse();
     $result = $response->getContent() . " " . UrlHelper::buildQuery($request->request->all());
     $this->assertEquals('POST name=druplicon&pass=12345', $result);
+    $this->assertEquals(AccessResult::allowed()->addCacheTags(['foo', 'bar']), $request->attributes->get(AccessAwareRouterInterface::ACCESS_RESULT));
   }
 
   /**
    * Tests onHandleException with a GET request.
    */
   public function testHandleWithGetRequest() {
-    $request = Request::create('/test', 'GET', array('name' => 'druplicon', 'pass' => '12345'));
+    $request = Request::create('/test', 'GET', ['name' => 'druplicon', 'pass' => '12345']);
+    $request->attributes->set(AccessAwareRouterInterface::ACCESS_RESULT, AccessResult::forbidden()->addCacheTags(['druplicon']));
+
+    $request_context = new RequestContext();
+    $request_context->fromRequest($request);
+    $this->accessUnawareRouter->expects($this->any())
+      ->method('getContext')
+      ->willReturn($request_context);
 
     $this->kernel->expects($this->once())->method('handle')->will($this->returnCallback(function (Request $request) {
       return new Response($request->getMethod() . ' ' . UrlHelper::buildQuery($request->query->all()));
@@ -137,7 +171,7 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
     $response = $event->getResponse();
     $result = $response->getContent() . " " . UrlHelper::buildQuery($request->request->all());
     $this->assertEquals('GET name=druplicon&pass=12345&destination=test&_exception_statuscode=404 ', $result);
+    $this->assertEquals(AccessResult::forbidden()->addCacheTags(['druplicon', 'foo', 'bar']), $request->attributes->get(AccessAwareRouterInterface::ACCESS_RESULT));
   }
 
 }
-

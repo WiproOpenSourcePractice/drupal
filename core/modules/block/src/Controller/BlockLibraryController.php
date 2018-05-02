@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block\Controller\BlockLibraryController.
- */
-
 namespace Drupal\block\Controller;
 
 use Drupal\Component\Serialization\Json;
@@ -106,12 +101,21 @@ class BlockLibraryController extends ControllerBase {
       ['data' => $this->t('Operations')],
     ];
 
+    $region = $request->query->get('region');
+    $weight = $request->query->get('weight');
+
     // Only add blocks which work without any available context.
-    $definitions = $this->blockManager->getDefinitionsForContexts($this->contextRepository->getAvailableContexts());
+    $definitions = $this->blockManager->getFilteredDefinitions('block_ui', $this->contextRepository->getAvailableContexts(), [
+      'theme' => $theme,
+      'region' => $region,
+    ]);
     // Order by category, and then by admin label.
     $definitions = $this->blockManager->getSortedDefinitions($definitions);
+    // Filter out definitions that are not intended to be placed by the UI.
+    $definitions = array_filter($definitions, function (array $definition) {
+      return empty($definition['_block_ui_hidden']);
+    });
 
-    $region = $request->query->get('region');
     $rows = [];
     foreach ($definitions as $plugin_id => $plugin_definition) {
       $row = [];
@@ -136,6 +140,9 @@ class BlockLibraryController extends ControllerBase {
       ];
       if ($region) {
         $links['add']['query']['region'] = $region;
+      }
+      if (isset($weight)) {
+        $links['add']['query']['weight'] = $weight;
       }
       $row['operations']['data'] = [
         '#type' => 'operations',

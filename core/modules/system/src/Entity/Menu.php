@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Entity\Menu.
- */
-
 namespace Drupal\system\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -16,6 +11,13 @@ use Drupal\system\MenuInterface;
  * @ConfigEntityType(
  *   id = "menu",
  *   label = @Translation("Menu"),
+ *   label_collection = @Translation("Menus"),
+ *   label_singular = @Translation("menu"),
+ *   label_plural = @Translation("menus"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count menu",
+ *     plural = "@count menus",
+ *   ),
  *   handlers = {
  *     "access" = "Drupal\system\MenuAccessControlHandler"
  *   },

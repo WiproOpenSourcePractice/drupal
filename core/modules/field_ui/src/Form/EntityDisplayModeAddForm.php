@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field_ui\Form\EntityDisplayModeAddForm.
- */
-
 namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Form\FormStateInterface;
@@ -12,6 +7,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Provides the add form for entity display modes.
+ *
+ * @internal
  */
 class EntityDisplayModeAddForm extends EntityDisplayModeFormBase {
 
@@ -31,7 +28,7 @@ class EntityDisplayModeAddForm extends EntityDisplayModeFormBase {
     // Change replace_pattern to avoid undesired dots.
     $form['id']['#machine_name']['replace_pattern'] = '[^a-z0-9_]+';
     $definition = $this->entityManager->getDefinition($this->targetEntityTypeId);
-    $form['#title'] = $this->t('Add new %label @entity-type', array('%label' => $definition->getLabel(), '@entity-type' => $this->entityType->getLowercaseLabel()));
+    $form['#title'] = $this->t('Add new %label @entity-type', ['%label' => $definition->getLabel(), '@entity-type' => $this->entityType->getLowercaseLabel()]);
     return $form;
   }
 

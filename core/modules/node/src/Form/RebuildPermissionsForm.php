@@ -1,16 +1,16 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\node\Form\RebuildPermissionsForm.
- */
-
 namespace Drupal\node\Form;
 
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 
+/**
+ * Form for rebuilding permissions.
+ *
+ * @internal
+ */
 class RebuildPermissionsForm extends ConfirmFormBase {
 
   /**

@@ -1,14 +1,14 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Session\AccountProxyInterface.
- */
-
 namespace Drupal\Core\Session;
 
 /**
  * Defines an interface for a service which has the current account stored.
+ *
+ * It is generally more useful to use \Drupal\Core\Session\AccountInterface
+ * unless one specifically needs the proxying features of this interface.
+ *
+ * @see \Drupal\Core\Session\AccountInterface
  *
  * @ingroup user_api
  */

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Field\FieldStorageDefinitionInterface.
- */
-
 namespace Drupal\Core\Field;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
@@ -102,7 +97,11 @@ interface FieldStorageDefinitionInterface extends CacheableDependencyInterface {
   public function setTranslatable($translatable);
 
   /**
-   * Returns whether the field is revisionable.
+   * Returns whether the field storage is revisionable.
+   *
+   * Note that if the entity type is revisionable and the field storage has a
+   * cardinality higher than 1, the field storage is considered revisionable
+   * by default.
    *
    * @return bool
    *   TRUE if the field is revisionable.
@@ -114,6 +113,12 @@ interface FieldStorageDefinitionInterface extends CacheableDependencyInterface {
    *
    * @return bool
    *   TRUE if the field is queryable.
+   *
+   * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use
+   *   \Drupal\Core\Field\FieldStorageDefinitionInterface::hasCustomStorage()
+   *   instead.
+   *
+   * @see https://www.drupal.org/node/2856563
    */
   public function isQueryable();
 
@@ -241,13 +246,15 @@ interface FieldStorageDefinitionInterface extends CacheableDependencyInterface {
    *
    * @return array[]
    *   The field schema, as an array of key/value pairs in the format returned
-   *   by hook_field_schema():
+   *   by \Drupal\Core\Field\FieldItemInterface::schema():
    *   - columns: An array of Schema API column specifications, keyed by column
    *     name. This specifies what comprises a single value for a given field.
    *     No assumptions should be made on how storage backends internally use
    *     the original column name to structure their storage.
    *   - indexes: An array of Schema API index definitions. Some storage
    *     backends might not support indexes.
+   *   - unique keys: An array of Schema API unique key definitions.  Some
+   *     storage backends might not support unique keys.
    *   - foreign keys: An array of Schema API foreign key definitions. Note,
    *     however, that depending on the storage backend specified for the field,
    *     the field data is not necessarily stored in SQL.
@@ -330,10 +337,18 @@ interface FieldStorageDefinitionInterface extends CacheableDependencyInterface {
   public function isBaseField();
 
   /**
-   * Returns a unique identifier for the field.
+   * Returns a unique identifier for the field storage.
    *
    * @return string
    */
   public function getUniqueStorageIdentifier();
+
+  /**
+   * Returns whether the field is deleted or not.
+   *
+   * @return bool
+   *   TRUE if the field is deleted, FALSE otherwise.
+   */
+  public function isDeleted();
 
 }

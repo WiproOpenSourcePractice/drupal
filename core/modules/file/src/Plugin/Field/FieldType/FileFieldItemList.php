@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\file\Plugin\Field\FieldType\FileFieldItemList.
- */
-
 namespace Drupal\file\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\EntityReferenceFieldItemList;
@@ -18,7 +13,7 @@ class FileFieldItemList extends EntityReferenceFieldItemList {
   /**
    * {@inheritdoc}
    */
-  public function defaultValuesForm(array &$form, FormStateInterface $form_state) { }
+  public function defaultValuesForm(array &$form, FormStateInterface $form_state) {}
 
   /**
    * {@inheritdoc}
@@ -35,7 +30,7 @@ class FileFieldItemList extends EntityReferenceFieldItemList {
     else {
       // Get current target file entities and file IDs.
       $files = $this->referencedEntities();
-      $ids = array();
+      $ids = [];
 
       /** @var \Drupal\file\FileInterface $file */
       foreach ($files as $file) {
@@ -53,12 +48,14 @@ class FileFieldItemList extends EntityReferenceFieldItemList {
 
       // Get the file IDs attached to the field before this update.
       $field_name = $this->getFieldDefinition()->getName();
-      $original_ids = array();
+      $original_ids = [];
       $langcode = $this->getLangcode();
       $original = $entity->original;
-      $original_items = $original->hasTranslation($langcode) ? $original->getTranslation($langcode)->{$field_name} : $original->{$field_name};
-      foreach ($original_items as $item) {
-        $original_ids[] = $item->target_id;
+      if ($original->hasTranslation($langcode)) {
+        $original_items = $original->getTranslation($langcode)->{$field_name};
+        foreach ($original_items as $item) {
+          $original_ids[] = $item->target_id;
+        }
       }
 
       // Decrement file usage by 1 for files that were removed from the field.
@@ -84,9 +81,11 @@ class FileFieldItemList extends EntityReferenceFieldItemList {
     parent::delete();
     $entity = $this->getEntity();
 
-    // Delete all file usages within this entity.
+    // If a translation is deleted only decrement the file usage by one. If the
+    // default translation is deleted remove all file usages within this entity.
+    $count = $entity->isDefaultTranslation() ? 0 : 1;
     foreach ($this->referencedEntities() as $file) {
-      \Drupal::service('file.usage')->delete($file, 'file', $entity->getEntityTypeId(), $entity->id(), 0);
+      \Drupal::service('file.usage')->delete($file, 'file', $entity->getEntityTypeId(), $entity->id(), $count);
     }
   }
 

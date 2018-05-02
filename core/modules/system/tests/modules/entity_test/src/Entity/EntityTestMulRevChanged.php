@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\Entity\EntityTestMulRevChanged.
- */
-
 namespace Drupal\entity_test\Entity;
 
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -43,6 +38,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *     "langcode" = "langcode",
  *   },
  *   links = {
+ *     "add-form" = "/entity_test_mulrev_changed/add",
  *     "canonical" = "/entity_test_mulrev_changed/manage/{entity_test_mulrev_changed}",
  *     "delete-form" = "/entity_test/delete/entity_test_mulrev_changed/{entity_test_mulrev_changed}",
  *     "edit-form" = "/entity_test_mulrev_changed/manage/{entity_test_mulrev_changed}/edit",
@@ -75,6 +71,7 @@ class EntityTestMulRevChanged extends EntityTestMulChanged {
     $fields['name']->setRevisionable(TRUE);
     $fields['user_id']->setRevisionable(TRUE);
     $fields['changed']->setRevisionable(TRUE);
+    $fields['not_translatable']->setRevisionable(TRUE);
 
     return $fields;
   }

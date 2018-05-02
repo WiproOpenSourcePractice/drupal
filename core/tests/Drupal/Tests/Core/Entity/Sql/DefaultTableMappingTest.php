@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Entity\Sql\DefaultTableMappingTest.
- */
-
 namespace Drupal\Tests\Core\Entity\Sql;
 
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
+use Drupal\Core\Entity\Sql\SqlContentEntityStorageException;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -223,6 +219,15 @@ class DefaultTableMappingTest extends UnitTestCase {
     $table_mapping = new DefaultTableMapping($this->entityType, $definitions);
     $expected = ['value' => 'test__value', 'format' => 'test__format'];
     $this->assertSame($expected, $table_mapping->getColumnNames('test'));
+
+    $definitions['test'] = $this->setUpDefinition('test', ['value']);
+    // Set custom storage.
+    $definitions['test']->expects($this->any())
+      ->method('hasCustomStorage')
+      ->wilLReturn(TRUE);
+    $table_mapping = new DefaultTableMapping($this->entityType, $definitions);
+    // Should return empty for column names.
+    $this->assertSame([], $table_mapping->getColumnNames('test'));
   }
 
   /**
@@ -290,9 +295,6 @@ class DefaultTableMappingTest extends UnitTestCase {
    * @param string $column
    *   The name of the column to be processed.
    *
-   * @expectedException \Drupal\Core\Entity\Sql\SqlContentEntityStorageException
-   * @expectedExceptionMessage Column information not available for the 'test' field.
-   *
    * @covers ::getFieldColumnName
    *
    * @dataProvider providerTestGetFieldColumnName
@@ -306,6 +308,7 @@ class DefaultTableMappingTest extends UnitTestCase {
       ->willReturn(TRUE);
 
     $table_mapping = new DefaultTableMapping($this->entityType, $definitions);
+    $this->setExpectedException(SqlContentEntityStorageException::class, "Column information not available for the 'test' field.");
     $table_mapping->getFieldColumnName($definitions['test'], $column);
   }
 
@@ -359,38 +362,35 @@ class DefaultTableMappingTest extends UnitTestCase {
       ->method('getColumns')
       ->willReturn($columns);
 
-    $storage = $this->getMockBuilder('\Drupal\Core\Entity\Sql\SqlContentEntityStorage')
-      ->disableOriginalConstructor()
-      ->getMock();
-
-    $storage
+    $this->entityType
       ->expects($this->any())
       ->method('getBaseTable')
-      ->willReturn(isset($table_names['base']) ? $table_names['base'] : 'base_table');
+      ->willReturn(isset($table_names['base']) ? $table_names['base'] : 'entity_test');
 
-    $storage
+    $this->entityType
       ->expects($this->any())
       ->method('getDataTable')
-      ->willReturn(isset($table_names['data']) ? $table_names['data'] : NULL);
+      ->willReturn(isset($table_names['data']) ? $table_names['data'] : FALSE);
 
-    $storage
+    $this->entityType
       ->expects($this->any())
       ->method('getRevisionTable')
-      ->willReturn(isset($table_names['revision']) ? $table_names['revision'] : NULL);
+      ->willReturn(isset($table_names['revision']) ? $table_names['revision'] : FALSE);
 
-    $entity_manager = $this->getMock('\Drupal\Core\Entity\EntityManagerInterface');
-    $entity_manager
+    $this->entityType
       ->expects($this->any())
-      ->method('getStorage')
-      ->willReturn($storage);
+      ->method('isTranslatable')
+      ->willReturn(isset($table_names['data']));
 
-    $container = $this->getMock('\Symfony\Component\DependencyInjection\ContainerInterface');
-    $container
+    $this->entityType
       ->expects($this->any())
-      ->method('get')
-      ->willReturn($entity_manager);
+      ->method('isRevisionable')
+      ->willReturn(isset($table_names['revision']));
 
-    \Drupal::setContainer($container);
+    $this->entityType
+      ->expects($this->any())
+      ->method('getRevisionMetadataKeys')
+      ->willReturn([]);
 
     $table_mapping = new DefaultTableMapping($this->entityType, [$field_name => $definition]);
 
@@ -436,13 +436,11 @@ class DefaultTableMappingTest extends UnitTestCase {
   /**
    * Tests DefaultTableMapping::getFieldTableName() with an invalid parameter.
    *
-   * @expectedException \Drupal\Core\Entity\Sql\SqlContentEntityStorageException
-   * @expectedExceptionMessage Table information not available for the 'invalid_field_name' field.
-   *
    * @covers ::getFieldTableName
    */
   public function testGetFieldTableNameInvalid() {
     $table_mapping = new DefaultTableMapping($this->entityType, []);
+    $this->setExpectedException(SqlContentEntityStorageException::class, "Table information not available for the 'invalid_field_name' field.");
     $table_mapping->getFieldTableName('invalid_field_name');
   }
 

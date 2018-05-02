@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\GeneratedUrl.
- */
-
 namespace Drupal\Core;
 
 use Drupal\Core\Render\BubbleableMetadata;
@@ -30,7 +25,7 @@ class GeneratedUrl extends BubbleableMetadata {
    * @return string
    */
   public function getGeneratedUrl() {
-    return $this->generatedUrl ;
+    return $this->generatedUrl;
   }
 
   /**

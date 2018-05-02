@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Entity\BundleEntityFormBase.
- */
-
 namespace Drupal\Core\Entity;
 
 /**
@@ -27,7 +22,7 @@ class BundleEntityFormBase extends EntityForm {
   protected function protectBundleIdElement(array $form) {
     $entity = $this->getEntity();
     $id_key = $entity->getEntityType()->getKey('id');
-    assert('isset($form[$id_key])');
+    assert(isset($form[$id_key]));
     $element = &$form[$id_key];
 
     // Make sure the element is not accidentally re-enabled if it has already

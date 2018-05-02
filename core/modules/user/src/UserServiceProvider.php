@@ -1,30 +1,25 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\user\UserServiceProvider.
- */
-
 namespace Drupal\user;
 
-use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 
-/**
- * Swaps the original 'password' service in order to handle password hashing for
- * user migrations that have passwords hashed to MD5.
- *
- * @see \Drupal\migrate\MigratePassword
- * @see \Drupal\Core\Password\PhpassHashedPassword
- */
 class UserServiceProvider implements ServiceModifierInterface {
 
   /**
    * {@inheritdoc}
    */
   public function alter(ContainerBuilder $container) {
-    $container->setDefinition('password_original', $container->getDefinition('password'));
-    $container->setDefinition('password', $container->getDefinition('password_migrate'));
+    if ($container->hasParameter('user.tempstore.expire')) {
+      @trigger_error('The container parameter "user.tempstore.expire" is deprecated. Use "tempstore.expire" instead. See https://www.drupal.org/node/2935639.', E_USER_DEPRECATED);
+      $container->setParameter('tempstore.expire', $container->getParameter('user.tempstore.expire'));
+    }
+    else {
+      // Ensure the user.tempstore.expire parameter is set to the same value
+      // for modules that still rely on it.
+      $container->setParameter('user.tempstore.expire', $container->getParameter('tempstore.expire'));
+    }
   }
 
 }

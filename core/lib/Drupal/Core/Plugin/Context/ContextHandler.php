@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Plugin\Context\ContextHandler.
- */
-
 namespace Drupal\Core\Plugin\Context;
 
 use Drupal\Component\Plugin\Exception\ContextException;
@@ -22,7 +17,9 @@ class ContextHandler implements ContextHandlerInterface {
   public function filterPluginDefinitionsByContexts(array $contexts, array $definitions) {
     return array_filter($definitions, function ($plugin_definition) use ($contexts) {
       // If this plugin doesn't need any context, it is available to use.
-      if (!isset($plugin_definition['context'])) {
+      // @todo Support object-based plugin definitions in
+      //   https://www.drupal.org/project/drupal/issues/2961822.
+      if (!is_array($plugin_definition) || !isset($plugin_definition['context'])) {
         return TRUE;
       }
 
@@ -48,30 +45,14 @@ class ContextHandler implements ContextHandlerInterface {
    */
   public function getMatchingContexts(array $contexts, ContextDefinitionInterface $definition) {
     return array_filter($contexts, function (ContextInterface $context) use ($definition) {
-      $context_definition = $context->getContextDefinition();
-
-      // If the data types do not match, this context is invalid unless the
-      // expected data type is any, which means all data types are supported.
-      if ($definition->getDataType() != 'any' && $definition->getDataType() != $context_definition->getDataType()) {
-        return FALSE;
-      }
-
-      // If any constraint does not match, this context is invalid.
-      foreach ($definition->getConstraints() as $constraint_name => $constraint) {
-        if ($context_definition->getConstraint($constraint_name) != $constraint) {
-          return FALSE;
-        }
-      }
-
-      // All contexts with matching data type and contexts are valid.
-      return TRUE;
+      return $definition->isSatisfiedBy($context);
     });
   }
 
   /**
    * {@inheritdoc}
    */
-  public function applyContextMapping(ContextAwarePluginInterface $plugin, $contexts, $mappings = array()) {
+  public function applyContextMapping(ContextAwarePluginInterface $plugin, $contexts, $mappings = []) {
     /** @var $contexts \Drupal\Core\Plugin\Context\ContextInterface[] */
     $mappings += $plugin->getContextMapping();
     // Loop through each of the expected contexts.

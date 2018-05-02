@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\EventSubscriber\DefaultExceptionHtmlSubscriber.
- */
-
 namespace Drupal\Core\EventSubscriber;
 
+use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Routing\RedirectDestinationInterface;
 use Drupal\Core\Utility\Error;
 use Psr\Log\LoggerInterface;
@@ -85,6 +81,18 @@ class DefaultExceptionHtmlSubscriber extends HttpExceptionSubscriberBase {
   }
 
   /**
+   * Handles a 4xx error for HTML.
+   *
+   * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
+   *   The event to process.
+   */
+  public function on4xx(GetResponseForExceptionEvent $event) {
+    if (($exception = $event->getException()) && $exception instanceof HttpExceptionInterface) {
+      $this->makeSubrequest($event, '/system/4xx', $exception->getStatusCode());
+    }
+  }
+
+  /**
    * Handles a 401 error for HTML.
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
@@ -118,7 +126,7 @@ class DefaultExceptionHtmlSubscriber extends HttpExceptionSubscriberBase {
    * Makes a subrequest to retrieve the default error page.
    *
    * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
-   *   The event to process
+   *   The event to process.
    * @param string $url
    *   The path/url to which to make a subrequest for this error message.
    * @param int $status_code
@@ -138,6 +146,14 @@ class DefaultExceptionHtmlSubscriber extends HttpExceptionSubscriberBase {
       // would execute a subrequest with the 404 route's URL, then it'd be
       // generated for *that* URL, not the *original* URL.
       $sub_request = clone $request;
+
+      // The routing to the 404 page should be done as GET request because it is
+      // restricted to GET and POST requests only. Otherwise a DELETE request
+      // would for example trigger a method not allowed exception.
+      $request_context = clone ($this->accessUnawareRouter->getContext());
+      $request_context->setMethod('GET');
+      $this->accessUnawareRouter->setContext($request_context);
+
       $sub_request->attributes->add($this->accessUnawareRouter->match($url));
 
       // Add to query (GET) or request (POST) parameters:
@@ -153,6 +169,13 @@ class DefaultExceptionHtmlSubscriber extends HttpExceptionSubscriberBase {
       // @see https://www.drupal.org/node/2603788#comment-10504916
       if ($response->isSuccessful()) {
         $response->setStatusCode($status_code);
+      }
+
+      // Persist the exception's cacheability metadata, if any. If the exception
+      // itself isn't cacheable, then this will make the response uncacheable:
+      // max-age=0 will be set.
+      if ($response instanceof CacheableResponseInterface) {
+        $response->addCacheableDependency($exception);
       }
 
       // Persist any special HTTP headers that were set on the exception.

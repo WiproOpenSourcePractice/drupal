@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Cache\CacheTagsInvalidator.
- */
-
 namespace Drupal\Core\Cache;
 
+use Drupal\Component\Assertion\Inspector;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 
 /**
@@ -21,13 +17,13 @@ class CacheTagsInvalidator implements CacheTagsInvalidatorInterface {
    *
    * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface[]
    */
-  protected $invalidators = array();
+  protected $invalidators = [];
 
   /**
    * {@inheritdoc}
    */
   public function invalidateTags(array $tags) {
-    assert('Drupal\Component\Assertion\Inspector::assertAllStrings($tags)', 'Cache tags must be strings.');
+    assert(Inspector::assertAllStrings($tags), 'Cache tags must be strings.');
 
     // Notify all added cache tags invalidators.
     foreach ($this->invalidators as $invalidator) {
@@ -71,7 +67,7 @@ class CacheTagsInvalidator implements CacheTagsInvalidatorInterface {
    *   interface, keyed by their cache bin.
    */
   protected function getInvalidatorCacheBins() {
-    $bins = array();
+    $bins = [];
     foreach ($this->container->getParameter('cache_bins') as $service_id => $bin) {
       $service = $this->container->get($service_id);
       if ($service instanceof CacheTagsInvalidatorInterface) {

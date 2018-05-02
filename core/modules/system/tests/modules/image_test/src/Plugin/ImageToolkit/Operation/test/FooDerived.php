@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\image_test\Plugin\ImageToolkit\Operation\test\FooDerived
- */
-
 namespace Drupal\image_test\Plugin\ImageToolkit\Operation\test;
 
 /**
@@ -18,4 +13,4 @@ namespace Drupal\image_test\Plugin\ImageToolkit\Operation\test;
  *   description = @Translation("Foo derived.")
  * )
  */
-class FooDerived extends OperationBase { }
+class FooDerived extends OperationBase {}

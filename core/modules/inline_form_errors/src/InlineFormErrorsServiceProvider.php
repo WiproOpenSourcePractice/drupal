@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\inline_form_errors\InlineFormErrorsServiceProvider.
- */
-
 namespace Drupal\inline_form_errors;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -22,7 +17,12 @@ class InlineFormErrorsServiceProvider extends ServiceProviderBase {
   public function alter(ContainerBuilder $container) {
     $container->getDefinition('form_error_handler')
       ->setClass(FormErrorHandler::class)
-      ->setArguments([new Reference('string_translation'), new Reference('link_generator'), new Reference('renderer')]);
+      ->setArguments([
+        new Reference('string_translation'),
+        new Reference('link_generator'),
+        new Reference('renderer'),
+        new Reference('messenger'),
+      ]);
   }
 
 }

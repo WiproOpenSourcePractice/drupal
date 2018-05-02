@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\file\Plugin\views\field\File.
- */
-
 namespace Drupal\file\Plugin\views\field;
 
 use Drupal\Core\Form\FormStateInterface;
@@ -38,7 +33,7 @@ class File extends FieldPluginBase {
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['link_to_file'] = array('default' => FALSE);
+    $options['link_to_file'] = ['default' => FALSE];
     return $options;
   }
 
@@ -46,12 +41,12 @@ class File extends FieldPluginBase {
    * Provide link to file option
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
-    $form['link_to_file'] = array(
+    $form['link_to_file'] = [
       '#title' => $this->t('Link this field to download the file'),
       '#description' => $this->t("Enable to override this field's links."),
       '#type' => 'checkbox',
       '#default_value' => !empty($this->options['link_to_file']),
-    );
+    ];
     parent::buildOptionsForm($form, $form_state);
   }
 
@@ -69,6 +64,12 @@ class File extends FieldPluginBase {
   protected function renderLink($data, ResultRow $values) {
     if (!empty($this->options['link_to_file']) && $data !== NULL && $data !== '') {
       $this->options['alter']['make_link'] = TRUE;
+      // @todo Wrap in file_url_transform_relative(). This is currently
+      // impossible. As a work-around, we could add the 'url.site' cache context
+      // to ensure different file URLs are generated for different sites in a
+      // multisite setup, including HTTP and HTTPS versions of the same site.
+      // But unfortunately it's impossible to bubble a cache context here.
+      // Fix in https://www.drupal.org/node/2646744.
       $this->options['alter']['path'] = file_create_url($this->getValue($values, 'uri'));
     }
 

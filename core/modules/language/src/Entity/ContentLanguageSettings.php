@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\language\Entity\ContentLanguageSettings.
- */
-
 namespace Drupal\language\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -19,11 +14,19 @@ use Drupal\language\ContentLanguageSettingsInterface;
  * @ConfigEntityType(
  *   id = "language_content_settings",
  *   label = @Translation("Content Language Settings"),
+ *   label_collection = @Translation("Content Language Settings"),
+ *   label_singular = @Translation("content language setting"),
+ *   label_plural = @Translation("content languages settings"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count content language setting",
+ *     plural = "@count content languages settings",
+ *   ),
  *   admin_permission = "administer languages",
  *   config_prefix = "content_settings",
  *   entity_keys = {
  *     "id" = "id"
  *   },
+ *   list_cache_tags = { "rendered" }
  * )
  */
 class ContentLanguageSettings extends ConfigEntityBase implements ContentLanguageSettingsInterface {
@@ -67,7 +70,7 @@ class ContentLanguageSettings extends ConfigEntityBase implements ContentLanguag
    * Constructs a ContentLanguageSettings object.
    *
    * In most cases, Field entities are created via
-   * entity_create('field_config', $values), where $values is the same
+   * FieldConfig::create($values), where $values is the same
    * parameter as in this constructor.
    *
    * @param array $values

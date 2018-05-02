@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\image_test\Plugin\ImageToolkit\DerivedToolkit.
- */
-
 namespace Drupal\image_test\Plugin\ImageToolkit;
 
 /**
@@ -15,4 +10,4 @@ namespace Drupal\image_test\Plugin\ImageToolkit;
  *   title = @Translation("A dummy toolkit, derivative of 'test'.")
  * )
  */
-class DerivedToolkit extends TestToolkit { }
+class DerivedToolkit extends TestToolkit {}

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\GeneratedLink.
- */
-
 namespace Drupal\Core;
 
 use Drupal\Component\Render\MarkupInterface;
@@ -20,6 +15,11 @@ use Drupal\Core\Render\BubbleableMetadata;
 class GeneratedLink extends BubbleableMetadata implements MarkupInterface, \Countable {
 
   /**
+   * HTML tag to use when building the link.
+   */
+  const TAG = 'a';
+
+  /**
    * The HTML string value containing a link.
    *
    * @var string
@@ -32,7 +32,7 @@ class GeneratedLink extends BubbleableMetadata implements MarkupInterface, \Coun
    * @return string
    */
   public function getGeneratedLink() {
-    return $this->generatedLink ;
+    return $this->generatedLink;
   }
 
   /**

@@ -1,11 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\image\Tests\ImageFieldValidateTest.
- */
-
 namespace Drupal\image\Tests;
+
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\field\Entity\FieldConfig;
 
 /**
  * Tests validation functions such as min/max resolution.
@@ -13,97 +11,71 @@ namespace Drupal\image\Tests;
  * @group image
  */
 class ImageFieldValidateTest extends ImageFieldTestBase {
-  /**
-   * Test min/max resolution settings.
-   */
-  function testResolution() {
-    $field_name = strtolower($this->randomMachineName());
-    $min_resolution = 50;
-    $max_resolution = 100;
-    $field_settings = array(
-      'max_resolution' => $max_resolution . 'x' . $max_resolution,
-      'min_resolution' => $min_resolution . 'x' . $min_resolution,
-      'alt_field' => 0,
-    );
-    $this->createImageField($field_name, 'article', array(), $field_settings);
 
-    // We want a test image that is too small, and a test image that is too
-    // big, so cycle through test image files until we have what we need.
-    $image_that_is_too_big = FALSE;
-    $image_that_is_too_small = FALSE;
-    $image_factory = $this->container->get('image.factory');
-    foreach ($this->drupalGetTestFiles('image') as $image) {
-      $image_file = $image_factory->get($image->uri);
-      if ($image_file->getWidth() > $max_resolution) {
-        $image_that_is_too_big = $image;
-      }
-      if ($image_file->getWidth() < $min_resolution) {
-        $image_that_is_too_small = $image;
-      }
-      if ($image_that_is_too_small && $image_that_is_too_big) {
-        break;
-      }
-    }
-    $this->uploadNodeImage($image_that_is_too_small, $field_name, 'article');
-    $this->assertRaw(t('The specified file %name could not be uploaded.', array('%name' => $image_that_is_too_small->filename)));
-    $this->assertRaw(t('The image is too small; the minimum dimensions are %dimensions pixels.', array('%dimensions' => '50x50')));
-    $this->uploadNodeImage($image_that_is_too_big, $field_name, 'article');
-    $this->assertText(t('The image was resized to fit within the maximum allowed dimensions of 100x100 pixels.'));
+  /**
+   * Test the validation message is displayed only once for ajax uploads.
+   */
+  public function testAJAXValidationMessage() {
+    $field_name = strtolower($this->randomMachineName());
+    $this->createImageField($field_name, 'article', ['cardinality' => -1]);
+
+    $this->drupalGet('node/add/article');
+    /** @var \Drupal\file\FileInterface[] $text_files */
+    $text_files = $this->drupalGetTestFiles('text');
+    $text_file = reset($text_files);
+    $edit = [
+      'files[' . $field_name . '_0][]' => $this->container->get('file_system')->realpath($text_file->uri),
+      'title[0][value]' => $this->randomMachineName(),
+    ];
+    $this->drupalPostAjaxForm(NULL, $edit, $field_name . '_0_upload_button');
+    $elements = $this->xpath('//div[contains(@class, :class)]', [
+      ':class' => 'messages--error',
+    ]);
+    $this->assertEqual(count($elements), 1, 'Ajax validation messages are displayed once.');
   }
 
   /**
-   * Test that required alt/title fields gets validated right.
+   * Tests that image field validation works with other form submit handlers.
    */
-  function testRequiredAttributes() {
-    $field_name = strtolower($this->randomMachineName());
-    $field_settings = array(
-      'alt_field' => 1,
-      'alt_field_required' => 1,
-      'title_field' => 1,
-      'title_field_required' => 1,
-      'required' => 1,
-    );
-    $instance = $this->createImageField($field_name, 'article', array(), $field_settings);
-    $images = $this->drupalGetTestFiles('image');
-    // Let's just use the first image.
-    $image = $images[0];
-    $this->uploadNodeImage($image, $field_name, 'article');
+  public function testFriendlyAjaxValidation() {
+    // Add a custom field to the Article content type that contains an AJAX
+    // handler on a select field.
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_dummy_select',
+      'type' => 'image_module_test_dummy_ajax',
+      'entity_type' => 'node',
+      'cardinality' => 1,
+    ]);
+    $field_storage->save();
 
-    // Look for form-required for the alt text.
-    $elements = $this->xpath('//label[@for="edit-' . $field_name . '-0-alt" and @class="js-form-required form-required"]/following-sibling::input[@id="edit-' . $field_name . '-0-alt"]');
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'entity_type' => 'node',
+      'bundle' => 'article',
+      'field_name' => 'field_dummy_select',
+      'label' => t('Dummy select'),
+    ])->save();
 
-    $this->assertTrue(isset($elements[0]), 'Required marker is shown for the required alt text.');
+    \Drupal::entityTypeManager()
+      ->getStorage('entity_form_display')
+      ->load('node.article.default')
+      ->setComponent(
+      'field_dummy_select',
+      [
+        'type' => 'image_module_test_dummy_ajax_widget',
+        'weight' => 1,
+      ])
+      ->save();
 
-    $elements = $this->xpath('//label[@for="edit-' . $field_name . '-0-title" and @class="js-form-required form-required"]/following-sibling::input[@id="edit-' . $field_name . '-0-title"]');
+    // Then, add an image field.
+    $this->createImageField('field_dummy_image', 'article');
 
-    $this->assertTrue(isset($elements[0]), 'Required marker is shown for the required title text.');
-
-    $this->assertText(t('Alternative text field is required.'));
-    $this->assertText(t('Title field is required.'));
-
-    $instance->setSetting('alt_field_required', 0);
-    $instance->setSetting('title_field_required', 0);
-    $instance->save();
-
-    $edit = array(
-      'title[0][value]' => $this->randomMachineName(),
-    );
-    $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
-
-    $this->assertNoText(t('Alternative text field is required.'));
-    $this->assertNoText(t('Title field is required.'));
-
-    $instance->setSetting('required', 0);
-    $instance->setSetting('alt_field_required', 1);
-    $instance->setSetting('title_field_required', 1);
-    $instance->save();
-
-    $edit = array(
-      'title[0][value]' => $this->randomMachineName(),
-    );
-    $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
-
-    $this->assertNoText(t('Alternative text field is required.'));
-    $this->assertNoText(t('Title field is required.'));
+    // Open an article and trigger the AJAX handler.
+    $this->drupalGet('node/add/article');
+    $edit = [
+      'field_dummy_select[select_widget]' => 'bam',
+    ];
+    $this->drupalPostAjaxForm(NULL, $edit, 'field_dummy_select[select_widget]');
   }
+
 }

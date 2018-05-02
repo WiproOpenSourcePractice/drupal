@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\content_translation\Form\ContentTranslationDeleteForm.
- */
-
 namespace Drupal\content_translation\Form;
 
 use Drupal\Core\Entity\ContentEntityDeleteForm;
@@ -13,6 +8,8 @@ use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Delete translation form for content_translation module.
+ *
+ * @internal
  */
 class ContentTranslationDeleteForm extends ContentEntityDeleteForm {
 

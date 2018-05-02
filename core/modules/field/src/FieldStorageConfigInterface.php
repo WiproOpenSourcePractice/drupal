@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\FieldStorageConfigInterface.
- */
-
 namespace Drupal\field;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
@@ -38,14 +33,6 @@ interface FieldStorageConfigInterface extends ConfigEntityInterface, FieldStorag
    *   An array of bundle names.
    */
   public function getBundles();
-
-  /**
-   * Returns whether the field is deleted or not.
-   *
-   * @return bool
-   *   TRUE if the field is deleted.
-   */
-  public function isDeleted();
 
   /**
    * Checks if the field storage can be deleted.

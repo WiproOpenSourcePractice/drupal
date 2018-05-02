@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Entity\Query\ConditionInterface.
- */
-
 namespace Drupal\Core\Entity\Query;
 
 /**
@@ -55,8 +50,8 @@ interface ConditionInterface {
    * Queries for the existence of a field.
    *
    * @param string $field
-   * @return ConditionInterface;
-   * @see \Drupal\Core\Entity\Query\QueryInterface::notexists()
+   * @return ConditionInterface
+   * @see \Drupal\Core\Entity\Query\QueryInterface::notExists()
    */
   public function notExists($field, $langcode = NULL);
 
@@ -77,4 +72,5 @@ interface ConditionInterface {
    *   The query object this conditional clause belongs to.
    */
   public function compile($query);
+
 }

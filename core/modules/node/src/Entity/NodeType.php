@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\node\Entity\NodeType.
- */
-
 namespace Drupal\node\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
@@ -17,6 +12,13 @@ use Drupal\node\NodeTypeInterface;
  * @ConfigEntityType(
  *   id = "node_type",
  *   label = @Translation("Content type"),
+ *   label_collection = @Translation("Content types"),
+ *   label_singular = @Translation("content type"),
+ *   label_plural = @Translation("content types"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count content type",
+ *     plural = "@count content types",
+ *   ),
  *   handlers = {
  *     "access" = "Drupal\node\NodeTypeAccessControlHandler",
  *     "form" = {
@@ -88,7 +90,7 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
    *
    * @var bool
    */
-  protected $new_revision = FALSE;
+  protected $new_revision = TRUE;
 
   /**
    * The preview mode.
@@ -184,13 +186,13 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
     if ($update && $this->getOriginalId() != $this->id()) {
       $update_count = node_type_update_nodes($this->getOriginalId(), $this->id());
       if ($update_count) {
-        drupal_set_message(\Drupal::translation()->formatPlural($update_count,
+        \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural($update_count,
           'Changed the content type of 1 post from %old-type to %type.',
           'Changed the content type of @count posts from %old-type to %type.',
-          array(
+          [
             '%old-type' => $this->getOriginalId(),
             '%type' => $this->id(),
-          )));
+          ]));
       }
     }
     if ($update) {
@@ -208,6 +210,13 @@ class NodeType extends ConfigEntityBundleBase implements NodeTypeInterface {
 
     // Clear the node type cache to reflect the removal.
     $storage->resetCache(array_keys($entities));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function shouldCreateNewRevision() {
+    return $this->isNewRevision();
   }
 
 }

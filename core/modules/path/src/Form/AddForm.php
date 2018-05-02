@@ -1,16 +1,13 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\path\Form\AddForm.
- */
-
 namespace Drupal\path\Form;
 
 use Drupal\Core\Language\LanguageInterface;
 
 /**
  * Provides the path add form.
+ *
+ * @internal
  */
 class AddForm extends PathFormBase {
 
@@ -25,12 +22,12 @@ class AddForm extends PathFormBase {
    * {@inheritdoc}
    */
   protected function buildPath($pid) {
-    return array(
+    return [
       'source' => '',
       'alias' => '',
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
       'pid' => NULL,
-    );
+    ];
   }
 
 }

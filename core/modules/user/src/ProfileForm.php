@@ -1,28 +1,15 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\user\ProfileForm.
- */
-
 namespace Drupal\user;
 
-use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Language\LanguageManagerInterface;
 
 /**
- * Form controller for the profile forms.
+ * Form handler for the profile forms.
+ *
+ * @internal
  */
 class ProfileForm extends AccountForm {
-
-  /**
-   * {@inheritdoc}
-   */
-  public function __construct(EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, QueryFactory $entity_query) {
-    parent::__construct($entity_manager, $language_manager, $entity_query);
-  }
 
   /**
    * {@inheritdoc}
@@ -37,7 +24,7 @@ class ProfileForm extends AccountForm {
     $user = $this->currentUser();
     $element['delete']['#type'] = 'submit';
     $element['delete']['#value'] = $this->t('Cancel account');
-    $element['delete']['#submit'] = array('::editCancelSubmit');
+    $element['delete']['#submit'] = ['::editCancelSubmit'];
     $element['delete']['#access'] = $account->id() > 1 && (($account->id() == $user->id() && $user->hasPermission('cancel account')) || $user->hasPermission('administer users'));
 
     return $element;
@@ -51,24 +38,24 @@ class ProfileForm extends AccountForm {
     $account->save();
     $form_state->setValue('uid', $account->id());
 
-    drupal_set_message($this->t('The changes have been saved.'));
+    $this->messenger()->addStatus($this->t('The changes have been saved.'));
   }
 
   /**
    * Provides a submit handler for the 'Cancel account' button.
    */
   public function editCancelSubmit($form, FormStateInterface $form_state) {
-    $destination = array();
+    $destination = [];
     $query = $this->getRequest()->query;
     if ($query->has('destination')) {
-      $destination = array('destination' => $query->get('destination'));
+      $destination = ['destination' => $query->get('destination')];
       $query->remove('destination');
     }
     // We redirect from user/%/edit to user/%/cancel to make the tabs disappear.
     $form_state->setRedirect(
       'entity.user.cancel_form',
-      array('user' => $this->entity->id()),
-      array('query' => $destination)
+      ['user' => $this->entity->id()],
+      ['query' => $destination]
     );
   }
 

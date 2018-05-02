@@ -1,15 +1,15 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block_test\Form\TestForm.
- */
-
 namespace Drupal\block_test\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
+/**
+ * Form that performs base block form test.
+ *
+ * @internal
+ */
 class TestForm extends FormBase {
 
   /**
@@ -49,7 +49,7 @@ class TestForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_set_message($this->t('Your email address is @email', ['@email' => $form['email']['#value']]));
+    $this->messenger()->addStatus($this->t('Your email address is @email', ['@email' => $form['email']['#value']]));
   }
 
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\dblog\Logger\DbLog.
- */
-
 namespace Drupal\dblog\Logger;
 
 use Drupal\Component\Utility\Unicode;
@@ -58,18 +53,18 @@ class DbLog implements LoggerInterface {
   /**
    * {@inheritdoc}
    */
-  public function log($level, $message, array $context = array()) {
+  public function log($level, $message, array $context = []) {
     // Remove any backtraces since they may contain an unserializable variable.
     unset($context['backtrace']);
 
-    // Convert PSR3-style messages to SafeMarkup::format() style, so they can be
-    // translated too in runtime.
+    // Convert PSR3-style messages to \Drupal\Component\Render\FormattableMarkup
+    // style, so they can be translated too in runtime.
     $message_placeholders = $this->parser->parseMessagePlaceholders($message, $context);
 
     try {
       $this->connection
         ->insert('watchdog')
-        ->fields(array(
+        ->fields([
           'uid' => $context['uid'],
           'type' => Unicode::substr($context['channel'], 0, 64),
           'message' => $message,
@@ -80,7 +75,7 @@ class DbLog implements LoggerInterface {
           'referer' => $context['referer'],
           'hostname' => Unicode::substr($context['ip'], 0, 128),
           'timestamp' => $context['timestamp'],
-        ))
+        ])
         ->execute();
     }
     catch (\Exception $e) {

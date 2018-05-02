@@ -5,6 +5,7 @@ package: Core
 version: VERSION
 core: 8.x
 dependencies:
-  - block
-  - text
+  - drupal:block
+  - drupal:text
+  - drupal:user
 configure: entity.block_content.collection

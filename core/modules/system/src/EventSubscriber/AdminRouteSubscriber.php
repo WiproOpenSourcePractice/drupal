@@ -1,18 +1,14 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\EventSubscriber\AdminRouteSubscriber.
- */
-
 namespace Drupal\system\EventSubscriber;
 
 use Drupal\Core\Routing\RouteSubscriberBase;
 use Drupal\Core\Routing\RoutingEvents;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
- * Adds the _admin_route option to each admin route.
+ * Adds the _admin_route option to each admin HTML route.
  */
 class AdminRouteSubscriber extends RouteSubscriberBase {
 
@@ -21,7 +17,7 @@ class AdminRouteSubscriber extends RouteSubscriberBase {
    */
   protected function alterRoutes(RouteCollection $collection) {
     foreach ($collection->all() as $route) {
-      if (strpos($route->getPath(), '/admin') === 0 && !$route->hasOption('_admin_route')) {
+      if (strpos($route->getPath(), '/admin') === 0 && !$route->hasOption('_admin_route') && static::isHtmlRoute($route)) {
         $route->setOption('_admin_route', TRUE);
       }
     }
@@ -33,13 +29,27 @@ class AdminRouteSubscriber extends RouteSubscriberBase {
   public static function getSubscribedEvents() {
     $events = parent::getSubscribedEvents();
 
-    // Use a higher priority than \Drupal\field_ui\Routing\RouteSubscriber or
-    // \Drupal\views\EventSubscriber\RouteSubscriber to ensure we add the
-    // option to their routes.
-    // @todo https://www.drupal.org/node/2158571
-    $events[RoutingEvents::ALTER] = array('onAlterRoutes', -200);
+    // Use a lower priority than \Drupal\field_ui\Routing\RouteSubscriber or
+    // \Drupal\views\EventSubscriber\RouteSubscriber to ensure we add the option
+    // to their routes.
+    $events[RoutingEvents::ALTER] = ['onAlterRoutes', -200];
 
     return $events;
+  }
+
+  /**
+   * Determines whether the given route is a HTML route.
+   *
+   * @param \Symfony\Component\Routing\Route $route
+   *   The route to analyze.
+   *
+   * @return bool
+   *   TRUE if HTML is a valid format for this route.
+   */
+  protected static function isHtmlRoute(Route $route) {
+    // If a route has no explicit format, then HTML is valid.
+    $format = $route->hasRequirement('_format') ? explode('|', $route->getRequirement('_format')) : ['html'];
+    return in_array('html', $format, TRUE);
   }
 
 }

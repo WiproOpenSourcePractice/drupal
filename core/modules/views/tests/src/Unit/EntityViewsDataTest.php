@@ -5,12 +5,12 @@
  * Contains \Drupal\Tests\views\Unit\EntityViewsDataTest.
  */
 
-namespace Drupal\Tests\views\Unit {
+namespace Drupal\Tests\views\Unit;
 
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\ContentEntityType;
-use Drupal\Core\Entity\EntityType;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Sql\DefaultTableMapping;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\IntegerItem;
@@ -18,12 +18,15 @@ use Drupal\Core\Field\Plugin\Field\FieldType\LanguageItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\StringItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\UuidItem;
+use Drupal\Core\State\StateInterface;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\text\Plugin\Field\FieldType\TextLongItem;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\entity_test\Entity\EntityTestMul;
 use Drupal\entity_test\Entity\EntityTestMulRev;
 use Drupal\Tests\UnitTestCase;
 use Drupal\views\EntityViewsData;
+use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
@@ -83,17 +86,24 @@ class EntityViewsDataTest extends UnitTestCase {
       ->getMock();
     $this->entityManager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
-    $typed_data_manager = $this->getMockBuilder('Drupal\Core\TypedData\TypedDataManager')
-      ->disableOriginalConstructor()
-      ->getMock();
+    $typed_data_manager = $this->getMock(TypedDataManagerInterface::class);
     $typed_data_manager->expects($this->any())
-        ->method('createDataDefinition')
-        ->willReturn($this->getMock('Drupal\Core\TypedData\DataDefinitionInterface'));
+      ->method('createDataDefinition')
+      ->willReturn($this->getMock('Drupal\Core\TypedData\DataDefinitionInterface'));
+
+    $typed_data_manager->expects($this->any())
+      ->method('getDefinition')
+      ->will($this->returnValueMap([
+        'entity:user' => ['class' => '\Drupal\Core\TypedData\DataDefinitionInterface'],
+        'field_item:string_long' => ['class' => '\Drupal\Core\Field\Plugin\Field\FieldType\StringLongItem'],
+      ]));
+
     $this->baseEntityType = new TestEntityType([
       'base_table' => 'entity_test',
       'id' => 'entity_test',
       'label' => 'Entity test',
       'entity_keys' => [
+        'uuid' => 'uuid',
         'id' => 'id',
         'langcode' => 'langcode',
         'bundle' => 'type',
@@ -104,6 +114,7 @@ class EntityViewsDataTest extends UnitTestCase {
     ]);
 
     $this->translationManager = $this->getStringTranslationStub();
+    $this->baseEntityType->setStringTranslation($this->translationManager);
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $this->viewsData = new TestEntityViewsData($this->baseEntityType, $this->entityStorage, $this->entityManager, $this->moduleHandler, $this->translationManager);
@@ -118,10 +129,14 @@ class EntityViewsDataTest extends UnitTestCase {
       ->method('getDefaultFieldSettings')
       ->willReturn([]);
 
+    $state = $this->prophesize(StateInterface::class);
+    $state->get(Argument::any(), [])->willReturn([]);
+
     $container = new ContainerBuilder();
     $container->set('plugin.manager.field.field_type', $field_type_manager);
     $container->set('entity.manager', $this->entityManager);
     $container->set('typed_data_manager', $typed_data_manager);
+    $container->set('state', $state->reveal());
     \Drupal::setContainer($container);
   }
 
@@ -138,27 +153,33 @@ class EntityViewsDataTest extends UnitTestCase {
     // Add a description field to the fields supplied by the EntityTest
     // classes. This example comes from the taxonomy Term entity.
     $base_fields['description'] = BaseFieldDefinition::create('text_long')
-      ->setLabel(t('Description'))
-      ->setDescription(t('A description of the term.'))
+      ->setLabel('Description')
+      ->setDescription('A description of the term.')
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
+      ->setDisplayOptions('view', [
           'label' => 'hidden',
           'type' => 'text_default',
           'weight' => 0,
-        ))
+        ])
       ->setDisplayConfigurable('view', TRUE)
-      ->setDisplayOptions('form', array(
+      ->setDisplayOptions('form', [
           'type' => 'text_textfield',
           'weight' => 0,
-        ))
+        ])
       ->setDisplayConfigurable('form', TRUE);
 
     // Add a URL field; this example is from the Comment entity.
     $base_fields['homepage'] = BaseFieldDefinition::create('uri')
-      ->setLabel(t('Homepage'))
-      ->setDescription(t("The comment author's home page address."))
+      ->setLabel('Homepage')
+      ->setDescription("The comment author's home page address.")
       ->setTranslatable(TRUE)
       ->setSetting('max_length', 255);
+
+    // A base field with cardinality > 1
+    $base_fields['string']  = BaseFieldDefinition::create('string')
+      ->setLabel('Strong')
+      ->setTranslatable(TRUE)
+      ->setCardinality(2);
 
     foreach ($base_fields as $name => $base_field) {
       $base_field->setName($name);
@@ -230,8 +251,7 @@ class EntityViewsDataTest extends UnitTestCase {
       ->set('revision_table', 'entity_test_mulrev_revision')
       ->set('revision_data_table', NULL)
       ->set('id', 'entity_test_mulrev')
-      ->setKey('revision', 'revision_id')
-    ;
+      ->setKey('revision', 'revision_id');
     $this->viewsData->setEntityType($entity_type);
 
     $data = $this->viewsData->getViewsData();
@@ -266,8 +286,7 @@ class EntityViewsDataTest extends UnitTestCase {
       ->set('revision_data_table', 'entity_test_mulrev_property_revision')
       ->set('id', 'entity_test_mulrev')
       ->set('translatable', TRUE)
-      ->setKey('revision', 'revision_id')
-    ;
+      ->setKey('revision', 'revision_id');
     $this->viewsData->setEntityType($entity_type);
 
     $data = $this->viewsData->getViewsData();
@@ -282,16 +301,25 @@ class EntityViewsDataTest extends UnitTestCase {
 
     // Ensure the join information is set up properly.
     // Tests the join definition between the base and the revision table.
-    $revision_data = $data['entity_test_mulrev_property_revision'];
-    $this->assertCount(2, $revision_data['table']['join']);
+    $revision_field_data = $data['entity_test_mulrev_property_revision'];
+    $this->assertCount(1, $revision_field_data['table']['join']);
     $this->assertEquals([
       'entity_test_mul_property_data' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
-      'entity_test_mulrev_revision' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+    ], $revision_field_data['table']['join']);
+
+    $revision_base_data = $data['entity_test_mulrev_revision'];
+    $this->assertCount(1, $revision_base_data['table']['join']);
+    $this->assertEquals([
+      'entity_test_mulrev_property_revision' => [
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
-    ], $revision_data['table']['join']);
+    ], $revision_base_data['table']['join']);
 
     $this->assertFalse(isset($data['data_table']));
   }
@@ -305,8 +333,7 @@ class EntityViewsDataTest extends UnitTestCase {
       ->set('revision_data_table', 'entity_test_mulrev_property_revision')
       ->set('id', 'entity_test_mulrev')
       ->set('translatable', TRUE)
-      ->setKey('revision', 'revision_id')
-    ;
+      ->setKey('revision', 'revision_id');
     $this->viewsData->setEntityType($entity_type);
 
     $data = $this->viewsData->getViewsData();
@@ -321,12 +348,25 @@ class EntityViewsDataTest extends UnitTestCase {
 
     // Ensure the join information is set up properly.
     // Tests the join definition between the base and the revision table.
-    $revision_data = $data['entity_test_mulrev_property_revision'];
-    $this->assertCount(2, $revision_data['table']['join']);
+    $revision_field_data = $data['entity_test_mulrev_property_revision'];
+    $this->assertCount(1, $revision_field_data['table']['join']);
     $this->assertEquals([
-      'entity_test_mulrev_field_data' => ['left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'],
-      'entity_test_mulrev_revision' => ['left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'],
-    ], $revision_data['table']['join']);
+      'entity_test_mulrev_field_data' => [
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
+      ],
+    ], $revision_field_data['table']['join']);
+
+    $revision_base_data = $data['entity_test_mulrev_revision'];
+    $this->assertCount(1, $revision_base_data['table']['join']);
+    $this->assertEquals([
+      'entity_test_mulrev_property_revision' => [
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
+      ],
+    ], $revision_base_data['table']['join']);
     $this->assertFalse(isset($data['data_table']));
   }
 
@@ -362,6 +402,10 @@ class EntityViewsDataTest extends UnitTestCase {
     $homepage_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(UriItem::schema($homepage_field_storage_definition));
+    $string_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $string_field_storage_definition->expects($this->any())
+      ->method('getSchema')
+      ->willReturn(StringItem::schema($string_field_storage_definition));
 
     // Setup the user_id entity reference field.
     $this->entityManager->expects($this->any())
@@ -397,6 +441,7 @@ class EntityViewsDataTest extends UnitTestCase {
         'name' => $name_field_storage_definition,
         'description' => $description_field_storage_definition,
         'homepage' => $homepage_field_storage_definition,
+        'string' => $string_field_storage_definition,
         'user_id' => $user_id_field_storage_definition,
         'revision_id' => $revision_id_field_storage_definition,
       ]);
@@ -409,8 +454,8 @@ class EntityViewsDataTest extends UnitTestCase {
     $base_field_definitions = $this->setupBaseFields(EntityTest::baseFieldDefinitions($this->baseEntityType));
     $user_base_field_definitions = [
       'uid' => BaseFieldDefinition::create('integer')
-        ->setLabel(t('ID'))
-        ->setDescription(t('The ID of the user entity.'))
+        ->setLabel('ID')
+        ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
         ->setSetting('unsigned', TRUE)
     ];
@@ -421,10 +466,12 @@ class EntityViewsDataTest extends UnitTestCase {
         ['entity_test', $base_field_definitions],
       ]));
     // Setup the table mapping.
-    $table_mapping = $this->getMock('Drupal\Core\Entity\Sql\TableMappingInterface');
+    $table_mapping = $this->getMockBuilder(DefaultTableMapping::class)
+      ->disableOriginalConstructor()
+      ->getMock();
     $table_mapping->expects($this->any())
       ->method('getTableNames')
-      ->willReturn(['entity_test']);
+      ->willReturn(['entity_test', 'entity_test__string']);
     $table_mapping->expects($this->any())
       ->method('getColumnNames')
       ->willReturnMap([
@@ -436,12 +483,26 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
       ->willReturnMap([
-        ['entity_test', ['id', 'uuid', 'type', 'langcode', 'name', 'description', 'homepage', 'user_id']]
+        ['entity_test', ['id', 'uuid', 'type', 'langcode', 'name', 'description', 'homepage', 'user_id']],
+        ['entity_test__string', ['string']],
       ]);
+    $table_mapping->expects($this->any())
+      ->method('requiresDedicatedTableStorage')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        return $base_field->getName() === 'string';
+      });
+    $table_mapping->expects($this->any())
+      ->method('getDedicatedDataTableName')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        if ($base_field->getName() === 'string') {
+          return 'entity_test__string';
+        }
+      });
 
     $this->entityStorage->expects($this->once())
       ->method('getTableMapping')
@@ -478,6 +539,23 @@ class EntityViewsDataTest extends UnitTestCase {
     $relationship = $data['entity_test']['user_id']['relationship'];
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
+
+    // The string field name should be used as the 'entity field' but the actual
+    // field should reflect what the column mapping is using for multi-value
+    // base fields NOT just the field name. The actual column name returned from
+    // mappings in the test mocks is 'value'.
+    $this->assertStringField($data['entity_test__string']['string_value']);
+    $this->assertField($data['entity_test__string']['string_value'], 'string');
+    $this->assertEquals([
+      'left_field' => 'id',
+      'field' => 'entity_id',
+      'extra' => [[
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
+    ], $data['entity_test__string']['table']['join']['entity_test']);
   }
 
   /**
@@ -488,8 +566,7 @@ class EntityViewsDataTest extends UnitTestCase {
       ->set('data_table', 'entity_test_mul_property_data')
       ->set('base_table', 'entity_test_mul')
       ->set('id', 'entity_test_mul')
-      ->setKey('bundle', 'type')
-    ;
+      ->setKey('bundle', 'type');
     $base_field_definitions = $this->setupBaseFields(EntityTestMul::baseFieldDefinitions($this->baseEntityType));
     $base_field_definitions['type'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel('entity test type')
@@ -498,8 +575,8 @@ class EntityViewsDataTest extends UnitTestCase {
     $base_field_definitions = $this->setupBaseFields($base_field_definitions);
     $user_base_field_definitions = [
       'uid' => BaseFieldDefinition::create('integer')
-        ->setLabel(t('ID'))
-        ->setDescription(t('The ID of the user entity.'))
+        ->setLabel('ID')
+        ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
         ->setSetting('unsigned', TRUE)
     ];
@@ -514,11 +591,13 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $this->viewsData->setEntityType($entity_type);
 
-     // Setup the table mapping.
-    $table_mapping = $this->getMock('Drupal\Core\Entity\Sql\TableMappingInterface');
+    // Setup the table mapping.
+    $table_mapping = $this->getMockBuilder(DefaultTableMapping::class)
+      ->disableOriginalConstructor()
+      ->getMock();
     $table_mapping->expects($this->any())
       ->method('getTableNames')
-      ->willReturn(['entity_test_mul', 'entity_test_mul_property_data']);
+      ->willReturn(['entity_test_mul', 'entity_test_mul_property_data', 'entity_test_mul__string']);
     $table_mapping->expects($this->any())
       ->method('getColumnNames')
       ->willReturnMap([
@@ -530,21 +609,35 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
       ->willReturnMap([
         ['entity_test_mul', ['uuid']],
         ['entity_test_mul_property_data', ['id', 'type', 'langcode', 'name', 'description', 'homepage', 'user_id']],
+        ['entity_test_mul__string', ['string']],
       ]);
 
     $table_mapping->expects($this->any())
       ->method('getFieldTableName')
-      ->willReturnCallback(function($field) {
+      ->willReturnCallback(function ($field) {
         if ($field == 'uuid') {
           return 'entity_test_mul';
         }
         return 'entity_test_mul_property_data';
+      });
+    $table_mapping->expects($this->any())
+      ->method('requiresDedicatedTableStorage')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        return $base_field->getName() === 'string';
+      });
+    $table_mapping->expects($this->any())
+      ->method('getDedicatedDataTableName')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        if ($base_field->getName() === 'string') {
+          return 'entity_test_mul__string';
+        }
       });
 
     $this->entityStorage->expects($this->once())
@@ -605,6 +698,19 @@ class EntityViewsDataTest extends UnitTestCase {
     $relationship = $data['entity_test_mul_property_data']['user_id']['relationship'];
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
+
+    $this->assertStringField($data['entity_test_mul__string']['string_value']);
+    $this->assertField($data['entity_test_mul__string']['string_value'], 'string');
+    $this->assertEquals([
+      'left_field' => 'id',
+      'field' => 'entity_id',
+      'extra' => [[
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
+    ], $data['entity_test_mul__string']['table']['join']['entity_test_mul']);
   }
 
   /**
@@ -621,8 +727,8 @@ class EntityViewsDataTest extends UnitTestCase {
     $base_field_definitions = $this->setupBaseFields(EntityTestMulRev::baseFieldDefinitions($this->baseEntityType));
     $user_base_field_definitions = [
       'uid' => BaseFieldDefinition::create('integer')
-        ->setLabel(t('ID'))
-        ->setDescription(t('The ID of the user entity.'))
+        ->setLabel('ID')
+        ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
         ->setSetting('unsigned', TRUE)
     ];
@@ -635,11 +741,13 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $this->viewsData->setEntityType($entity_type);
 
-     // Setup the table mapping.
-    $table_mapping = $this->getMock('Drupal\Core\Entity\Sql\TableMappingInterface');
+    // Setup the table mapping.
+    $table_mapping = $this->getMockBuilder(DefaultTableMapping::class)
+      ->disableOriginalConstructor()
+      ->getMock();
     $table_mapping->expects($this->any())
       ->method('getTableNames')
-      ->willReturn(['entity_test_mulrev', 'entity_test_mulrev_revision', 'entity_test_mulrev_property_data', 'entity_test_mulrev_property_revision']);
+      ->willReturn(['entity_test_mulrev', 'entity_test_mulrev_revision', 'entity_test_mulrev_property_data', 'entity_test_mulrev_property_revision', 'entity_test_mulrev__string', 'entity_test_mulrev_revision__string']);
     $table_mapping->expects($this->any())
       ->method('getColumnNames')
       ->willReturnMap([
@@ -651,7 +759,8 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
-        ['revision_id', ['value' => 'id']],
+        ['revision_id', ['value' => 'revision_id']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
@@ -660,11 +769,33 @@ class EntityViewsDataTest extends UnitTestCase {
         ['entity_test_mulrev_revision', ['id', 'revision_id', 'langcode']],
         ['entity_test_mulrev_property_data', ['id', 'revision_id', 'langcode', 'name', 'description', 'homepage', 'user_id']],
         ['entity_test_mulrev_property_revision', ['id', 'revision_id', 'langcode', 'name', 'description', 'homepage', 'user_id']],
+        ['entity_test_mulrev__string', ['string']],
+        ['entity_test_mulrev_revision__string', ['string']],
       ]);
+    $table_mapping->expects($this->any())
+      ->method('requiresDedicatedTableStorage')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        return $base_field->getName() === 'string';
+      });
+    $table_mapping->expects($this->any())
+      ->method('getDedicatedDataTableName')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        if ($base_field->getName() === 'string') {
+          return 'entity_test_mulrev__string';
+        }
+      });
+
+    $table_mapping->expects($this->any())
+      ->method('getDedicatedRevisionTableName')
+      ->willReturnCallback(function (BaseFieldDefinition $base_field) {
+        if ($base_field->getName() === 'string') {
+          return 'entity_test_mulrev_revision__string';
+        }
+      });
 
     $table_mapping->expects($this->any())
       ->method('getFieldTableName')
-      ->willReturnCallback(function($field) {
+      ->willReturnCallback(function ($field) {
         if ($field == 'uuid') {
           return 'entity_test_mulrev';
         }
@@ -753,6 +884,32 @@ class EntityViewsDataTest extends UnitTestCase {
     $relationship = $data['entity_test_mulrev_property_revision']['user_id']['relationship'];
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
+
+    $this->assertStringField($data['entity_test_mulrev__string']['string_value']);
+    $this->assertField($data['entity_test_mulrev__string']['string_value'], 'string');
+    $this->assertEquals([
+      'left_field' => 'id',
+      'field' => 'entity_id',
+      'extra' => [[
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
+    ], $data['entity_test_mulrev__string']['table']['join']['entity_test_mulrev_property_data']);
+
+    $this->assertStringField($data['entity_test_mulrev_revision__string']['string_value']);
+    $this->assertField($data['entity_test_mulrev_revision__string']['string_value'], 'string');
+    $this->assertEquals([
+      'left_field' => 'revision_id',
+      'field' => 'entity_id',
+      'extra' => [[
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
+    ], $data['entity_test_mulrev_revision__string']['table']['join']['entity_test_mulrev_property_revision']);
   }
 
   /**
@@ -776,9 +933,11 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->baseEntityType->setLinkTemplate('delete-form', '/entity_test/{entity_test}/delete');
 
     $data = $this->viewsData->getViewsData();
-    $this->assertEquals('entity_link', $data['entity_test']['view_entity_test']['field']['id']);
-    $this->assertEquals('entity_link_edit', $data['entity_test']['edit_entity_test']['field']['id']);
-    $this->assertEquals('entity_link_delete', $data['entity_test']['delete_entity_test']['field']['id']);
+    foreach (['entity_test', 'entity_test_revision'] as $table_name) {
+      $this->assertEquals('entity_link', $data[$table_name]['view_entity_test']['field']['id']);
+      $this->assertEquals('entity_link_edit', $data[$table_name]['edit_entity_test']['field']['id']);
+      $this->assertEquals('entity_link_delete', $data[$table_name]['delete_entity_test']['field']['id']);
+    }
   }
 
   /**
@@ -788,10 +947,13 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->baseEntityType->setLinkTemplate('edit-form', '/entity_test/{entity_test}/edit');
 
     $data = $this->viewsData->getViewsData();
-    $this->assertFalse(isset($data['entity_test']['view_entity_test']));
-    $this->assertFalse(isset($data['entity_test']['delete_entity_test']));
 
-    $this->assertEquals('entity_link_edit', $data['entity_test']['edit_entity_test']['field']['id']);
+    foreach (['entity_test', 'entity_test_revision'] as $table_name) {
+      $this->assertFalse(isset($data[$table_name]['view_entity_test']));
+      $this->assertFalse(isset($data[$table_name]['delete_entity_test']));
+
+      $this->assertEquals('entity_link_edit', $data[$table_name]['edit_entity_test']['field']['id']);
+    }
   }
 
   /**
@@ -947,9 +1109,10 @@ class TestEntityViewsData extends EntityViewsData {
   public function setEntityType(EntityTypeInterface $entity_type) {
     $this->entityType = $entity_type;
   }
+
 }
 
-class TestEntityType extends EntityType {
+class TestEntityType extends ContentEntityType {
 
   /**
    * Sets a specific entity key.
@@ -968,12 +1131,19 @@ class TestEntityType extends EntityType {
 
 }
 
+namespace Drupal\entity_test\Entity;
+
+if (!function_exists('t')) {
+  function t($string, array $args = []) {
+    return strtr($string, $args);
+  }
 }
 
-namespace {
-  if (!function_exists('t')) {
-    function t($string, array $args = []) {
-      return strtr($string, $args);
-    }
+
+namespace Drupal\Core\Entity;
+
+if (!function_exists('t')) {
+  function t($string, array $args = []) {
+    return strtr($string, $args);
   }
 }

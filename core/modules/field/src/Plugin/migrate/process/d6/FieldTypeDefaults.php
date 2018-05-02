@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\Plugin\migrate\process\d6\FieldTypeDefaults.
- */
-
 namespace Drupal\field\Plugin\migrate\process\d6;
 
 use Drupal\migrate\MigrateException;
@@ -16,7 +11,7 @@ use Drupal\migrate\Row;
  * Gives us a chance to set per field defaults.
  *
  * @MigrateProcessPlugin(
- *   id = "field_type_defaults"
+ *   id = "d6_field_type_defaults"
  * )
  */
 class FieldTypeDefaults extends ProcessPluginBase {

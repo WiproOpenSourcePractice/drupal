@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Plugin\Block\SystemMessagesBlock.
- */
-
 namespace Drupal\system\Plugin\Block;
 
 use Drupal\Core\Block\BlockBase;
@@ -14,7 +9,7 @@ use Drupal\Core\Cache\Cache;
 /**
  * Provides a block to display the messages.
  *
- * @see drupal_set_message()
+ * @see @see \Drupal\Core\Messenger\MessengerInterface
  *
  * @Block(
  *   id = "system_messages_block",
@@ -27,9 +22,9 @@ class SystemMessagesBlock extends BlockBase implements MessagesBlockPluginInterf
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array(
+    return [
       'label_display' => FALSE,
-    );
+    ];
   }
 
   /**

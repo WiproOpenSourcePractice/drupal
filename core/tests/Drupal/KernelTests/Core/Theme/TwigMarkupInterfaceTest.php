@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\KernelTests\Core\Theme\ThemeRenderAndAutoescapeTest.
+ * Contains \Drupal\KernelTests\Core\Theme\TwigMarkupInterfaceTest.
  */
 
 namespace Drupal\KernelTests\Core\Theme;
@@ -45,7 +45,11 @@ class TwigMarkupInterfaceTest extends KernelTestBase {
    */
   public function providerTestMarkupInterfaceEmpty() {
     return [
+      // @codingStandardsIgnoreStart
+      // The first argument to \Drupal\Core\StringTranslation\TranslatableMarkup
+      // is not supposed to be an empty string.
       'empty TranslatableMarkup' => ['', new TranslatableMarkup('')],
+      // @codingStandardsIgnoreEnd
       'non-empty TranslatableMarkup' => ['<span>test</span>', new TranslatableMarkup('test')],
       'empty FormattableMarkup' => ['', new FormattableMarkup('', ['@foo' => 'bar'])],
       'non-empty FormattableMarkup' => ['<span>bar</span>', new FormattableMarkup('@foo', ['@foo' => 'bar'])],
@@ -53,7 +57,7 @@ class TwigMarkupInterfaceTest extends KernelTestBase {
       'empty GeneratedLink' => ['', new GeneratedLink()],
       'non-empty GeneratedLink' => ['<span><a hef="http://www.example.com">test</a></span>', (new GeneratedLink())->setGeneratedLink('<a hef="http://www.example.com">test</a>')],
       // Test objects that do not implement \Countable.
-      'empty SafeMarkupTestMarkup' => ['<span></span>', SafeMarkupTestMarkup::create('')],
+      'empty SafeMarkupTestMarkup' => ['', SafeMarkupTestMarkup::create('')],
       'non-empty SafeMarkupTestMarkup' => ['<span>test</span>', SafeMarkupTestMarkup::create('test')],
     ];
   }
@@ -86,7 +90,7 @@ class TwigMarkupInterfaceTest extends KernelTestBase {
       $elements = [
         '#type' => 'inline_template',
         '#template' => '{%- if variable is not empty -%}<span>{{ variable }}</span>{%- endif -%}',
-        '#context' => array('variable' => $variable),
+        '#context' => ['variable' => $variable],
       ];
       return $renderer->render($elements);
     });

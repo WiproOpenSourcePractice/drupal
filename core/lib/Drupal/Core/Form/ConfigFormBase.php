@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Form\ConfigFormBase.
- */
-
 namespace Drupal\Core\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -40,13 +35,13 @@ abstract class ConfigFormBase extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['actions']['#type'] = 'actions';
-    $form['actions']['submit'] = array(
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save configuration'),
       '#button_type' => 'primary',
-    );
+    ];
 
-    // By default, render the form using theme_system_config_form().
+    // By default, render the form using system-config-form.html.twig.
     $form['#theme'] = 'system_config_form';
 
     return $form;
@@ -56,7 +51,7 @@ abstract class ConfigFormBase extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_set_message($this->t('The configuration options have been saved.'));
+    $this->messenger()->addStatus($this->t('The configuration options have been saved.'));
   }
 
 }

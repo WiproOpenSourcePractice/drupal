@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\config_override_test\PirateDayCacheabilityMetadataConfigOverride.
- */
-
 namespace Drupal\config_override_test;
 
 use Drupal\config_override_test\Cache\PirateDayCacheContext;
@@ -64,19 +59,6 @@ class PirateDayCacheabilityMetadataConfigOverride implements ConfigFactoryOverri
       ->setCacheTags(['pirate-day-tag'])
       ->setCacheMaxAge(PirateDayCacheContext::PIRATE_DAY_MAX_AGE);
     return $metadata;
-  }
-
-  /**
-   * Returns whether or not our overrides are potentially applicable.
-   *
-   * @param string $name
-   *   The name of the config object that is being constructed.
-   *
-   * @return bool
-   *   TRUE if the merchant ship will be boarded. FALSE if we drink rum instead.
-   */
-  protected function isCacheabilityMetadataApplicable($name) {
-    return in_array($name, ['system.theme', 'block.block.call_to_action']);
   }
 
 }

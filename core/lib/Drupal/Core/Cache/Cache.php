@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Cache\Cache.
- */
-
 namespace Drupal\Core\Cache;
 
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\Database\Query\SelectInterface;
 
 /**
@@ -25,16 +21,16 @@ class Cache {
    * Merges arrays of cache contexts and removes duplicates.
    *
    * @param array $a
-   *    Cache contexts array to merge.
+   *   Cache contexts array to merge.
    * @param array $b
-   *    Cache contexts array to merge.
+   *   Cache contexts array to merge.
    *
    * @return string[]
    *   The merged array of cache contexts.
    */
   public static function mergeContexts(array $a = [], array $b = []) {
     $cache_contexts = array_unique(array_merge($a, $b));
-    assert('\Drupal::service(\'cache_contexts_manager\')->assertValidTokens($cache_contexts)');
+    assert(\Drupal::service('cache_contexts_manager')->assertValidTokens($cache_contexts));
     sort($cache_contexts);
     return $cache_contexts;
   }
@@ -51,15 +47,15 @@ class Cache {
    * they're constituted from.
    *
    * @param array $a
-   *    Cache tags array to merge.
+   *   Cache tags array to merge.
    * @param array $b
-   *    Cache tags array to merge.
+   *   Cache tags array to merge.
    *
    * @return string[]
    *   The merged array of cache tags.
    */
   public static function mergeTags(array $a = [], array $b = []) {
-    assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($a) && \Drupal\Component\Assertion\Inspector::assertAllStrings($b)', 'Cache tags must be valid strings');
+    assert(Inspector::assertAllStrings($a) && Inspector::assertAllStrings($b), 'Cache tags must be valid strings');
 
     $cache_tags = array_unique(array_merge($a, $b));
     sort($cache_tags);
@@ -72,19 +68,19 @@ class Cache {
    * Ensures infinite max-age (Cache::PERMANENT) is taken into account.
    *
    * @param int $a
-   *    Max age value to merge.
+   *   Max age value to merge.
    * @param int $b
-   *    Max age value to merge.
+   *   Max age value to merge.
    *
    * @return int
    *   The minimum max-age value.
    */
   public static function mergeMaxAges($a = Cache::PERMANENT, $b = Cache::PERMANENT) {
     // If one of the values is Cache::PERMANENT, return the other value.
-    if ($a === Cache::PERMANENT){
+    if ($a === Cache::PERMANENT) {
       return $b;
     }
-    if ($b === Cache::PERMANENT){
+    if ($b === Cache::PERMANENT) {
       return $a;
     }
 
@@ -101,7 +97,7 @@ class Cache {
    *   An array of cache tags.
    *
    * @deprecated
-   *   Use assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($tags)');
+   *   Use assert(Inspector::assertAllStrings($tags));
    *
    * @throws \LogicException
    */
@@ -153,11 +149,11 @@ class Cache {
   /**
    * Gets all cache bin services.
    *
-   * @return array
-   *  An array of cache backend objects keyed by cache bins.
+   * @return \Drupal\Core\Cache\CacheBackendInterface[]
+   *   An array of cache backend objects keyed by cache bins.
    */
   public static function getBins() {
-    $bins = array();
+    $bins = [];
     $container = \Drupal::getContainer();
     foreach ($container->getParameter('cache_bins') as $service_id => $bin) {
       $bins[$bin] = $container->get($service_id);
@@ -183,7 +179,7 @@ class Cache {
    */
   public static function keyFromQuery(SelectInterface $query) {
     $query->preExecute();
-    $keys = array((string) $query, $query->getArguments());
+    $keys = [(string) $query, $query->getArguments()];
     return hash('sha256', serialize($keys));
   }
 

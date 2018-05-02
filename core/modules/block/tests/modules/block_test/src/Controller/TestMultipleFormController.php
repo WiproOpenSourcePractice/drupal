@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\block_test\Controller\TestMultipleFormController.
- */
 
 namespace Drupal\block_test\Controller;
 
@@ -12,7 +8,7 @@ use Drupal\Core\Form\FormState;
 /**
  * Controller for block_test module
  */
-class TestMultipleFormController  extends ControllerBase {
+class TestMultipleFormController extends ControllerBase {
 
   public function testMultipleForms() {
     $form_state = new FormState();
@@ -21,7 +17,8 @@ class TestMultipleFormController  extends ControllerBase {
       'form2' => $this->formBuilder()->buildForm('\Drupal\block_test\Form\FavoriteAnimalTestForm', $form_state),
     ];
 
-    // Output all attached placeholders trough drupal_set_message(), so we can
+    // Output all attached placeholders trough
+    // \Drupal\Core\Messenger\MessengerInterface::addMessage(), so we can
     // see if there's only one in the tests.
     $post_render_callable = function ($elements) {
       $matches = [];
@@ -30,7 +27,7 @@ class TestMultipleFormController  extends ControllerBase {
       $action_values = $matches[2];
 
       foreach ($action_values as $action_value) {
-        drupal_set_message('Form action: ' . $action_value);
+        $this->messenger()->addStatus('Form action: ' . $action_value);
       }
       return $elements;
     };

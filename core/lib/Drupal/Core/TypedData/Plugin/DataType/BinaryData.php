@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\TypedData\Plugin\DataType\BinaryData.
- */
-
 namespace Drupal\Core\TypedData\Plugin\DataType;
 
 use Drupal\Core\TypedData\PrimitiveBase;
@@ -93,4 +88,5 @@ class BinaryData extends PrimitiveBase implements BinaryInterface {
   public function getCastedValue() {
     return $this->getValue();
   }
+
 }

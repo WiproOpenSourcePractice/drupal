@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Entity\RevisionableInterface.
- */
-
 namespace Drupal\Core\Entity;
 
 /**
@@ -45,6 +40,27 @@ interface RevisionableInterface {
   public function getRevisionId();
 
   /**
+   * Gets the loaded Revision ID of the entity.
+   *
+   * @return int
+   *   The loaded Revision identifier of the entity, or NULL if the entity
+   *   does not have a revision identifier.
+   */
+  public function getLoadedRevisionId();
+
+  /**
+   * Updates the loaded Revision ID with the revision ID.
+   *
+   * This method should not be used, it could unintentionally cause the original
+   * revision ID property value to be lost.
+   *
+   * @internal
+   *
+   * @return $this
+   */
+  public function updateLoadedRevisionId();
+
+  /**
    * Checks if this entity is the default revision.
    *
    * @param bool $new_value
@@ -55,6 +71,22 @@ interface RevisionableInterface {
    *   $new_value was passed, the previous value is returned.
    */
   public function isDefaultRevision($new_value = NULL);
+
+  /**
+   * Checks whether the entity object was a default revision when it was saved.
+   *
+   * @return bool
+   *   TRUE if the entity object was a revision, FALSE otherwise.
+   */
+  public function wasDefaultRevision();
+
+  /**
+   * Checks if this entity is the latest revision.
+   *
+   * @return bool
+   *   TRUE if the entity is the latest revision, FALSE otherwise.
+   */
+  public function isLatestRevision();
 
   /**
    * Acts on a revision before it gets saved.

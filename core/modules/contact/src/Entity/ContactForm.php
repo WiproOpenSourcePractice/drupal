@@ -1,14 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\contact\Entity\ContactForm.
- */
-
 namespace Drupal\contact\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
 use Drupal\contact\ContactFormInterface;
+use Drupal\Core\Url;
 
 /**
  * Defines the contact form entity.
@@ -16,6 +12,13 @@ use Drupal\contact\ContactFormInterface;
  * @ConfigEntityType(
  *   id = "contact_form",
  *   label = @Translation("Contact form"),
+ *   label_collection = @Translation("Contact forms"),
+ *   label_singular = @Translation("contact form"),
+ *   label_plural = @Translation("contact forms"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count contact form",
+ *     plural = "@count contact forms",
+ *   ),
  *   handlers = {
  *     "access" = "Drupal\contact\ContactFormAccessControlHandler",
  *     "list_builder" = "Drupal\contact\ContactFormListBuilder",
@@ -44,6 +47,8 @@ use Drupal\contact\ContactFormInterface;
  *     "recipients",
  *     "reply",
  *     "weight",
+ *     "message",
+ *     "redirect",
  *   }
  * )
  */
@@ -64,11 +69,25 @@ class ContactForm extends ConfigEntityBundleBase implements ContactFormInterface
   protected $label;
 
   /**
+   * The message displayed to user on form submission.
+   *
+   * @var string
+   */
+  protected $message;
+
+  /**
    * List of recipient email addresses.
    *
    * @var array
    */
-  protected $recipients = array();
+  protected $recipients = [];
+
+  /**
+   * The path to redirect to on form submission.
+   *
+   * @var string
+   */
+  protected $redirect;
 
   /**
    * An auto-reply message.
@@ -87,6 +106,21 @@ class ContactForm extends ConfigEntityBundleBase implements ContactFormInterface
   /**
    * {@inheritdoc}
    */
+  public function getMessage() {
+    return $this->message;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setMessage($message) {
+    $this->message = $message;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getRecipients() {
     return $this->recipients;
   }
@@ -96,6 +130,34 @@ class ContactForm extends ConfigEntityBundleBase implements ContactFormInterface
    */
   public function setRecipients($recipients) {
     $this->recipients = $recipients;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRedirectPath() {
+    return $this->redirect;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getRedirectUrl() {
+    if ($this->redirect) {
+      $url = Url::fromUserInput($this->redirect);
+    }
+    else {
+      $url = Url::fromRoute('<front>');
+    }
+    return $url;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setRedirectPath($redirect) {
+    $this->redirect = $redirect;
     return $this;
   }
 

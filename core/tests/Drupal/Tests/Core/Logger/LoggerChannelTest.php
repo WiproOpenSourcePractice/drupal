@@ -12,6 +12,8 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LoggerTrait;
 
 /**
  * @coversDefaultClass \Drupal\Core\Logger\LoggerChannel
@@ -55,6 +57,21 @@ class LoggerChannelTest extends UnitTestCase {
   }
 
   /**
+   * Tests LoggerChannel::log() recursion protection.
+   *
+   * @covers ::log
+   */
+  public function testLogRecursionProtection() {
+    $channel = new LoggerChannel('test');
+    $logger = $this->getMock('Psr\Log\LoggerInterface');
+    $logger->expects($this->exactly(LoggerChannel::MAX_CALL_DEPTH))
+      ->method('log');
+    $channel->addLogger($logger);
+    $channel->addLogger(new NaughtyRecursiveLogger($channel));
+    $channel->log(rand(0, 7), $this->randomMachineName());
+  }
+
+  /**
    * Tests LoggerChannel::addLoggers().
    *
    * @covers ::addLogger
@@ -85,47 +102,63 @@ class LoggerChannelTest extends UnitTestCase {
    */
   public function providerTestLog() {
     $account_mock = $this->getMock('Drupal\Core\Session\AccountInterface');
-    $account_mock->expects($this->exactly(2))
+    $account_mock->expects($this->any())
       ->method('id')
       ->will($this->returnValue(1));
 
-    $request_mock = $this->getMock('Symfony\Component\HttpFoundation\Request');
-    $request_mock->expects($this->exactly(2))
+    $request_mock = $this->getMock('Symfony\Component\HttpFoundation\Request', ['getClientIp']);
+    $request_mock->expects($this->any())
       ->method('getClientIp')
       ->will($this->returnValue('127.0.0.1'));
     $request_mock->headers = $this->getMock('Symfony\Component\HttpFoundation\ParameterBag');
 
     // No request or account.
-    $cases [] = array(
+    $cases[] = [
       function ($context) {
         return $context['channel'] == 'test' && empty($context['uid']) && empty($context['ip']);
       },
-    );
+    ];
     // With account but not request. Since the request is not available the
     // current user should not be used.
-    $cases [] = array(
+    $cases[] = [
       function ($context) {
         return $context['uid'] === 0 && empty($context['ip']);
       },
       NULL,
       $account_mock,
-    );
+    ];
     // With request but not account.
-    $cases [] = array(
+    $cases[] = [
       function ($context) {
         return $context['ip'] === '127.0.0.1' && empty($context['uid']);
       },
       $request_mock,
-    );
+    ];
     // Both request and account.
-    $cases [] = array(
+    $cases[] = [
       function ($context) {
         return $context['ip'] === '127.0.0.1' && $context['uid'] === 1;
       },
       $request_mock,
       $account_mock,
-    );
+    ];
     return $cases;
+  }
+
+}
+
+class NaughtyRecursiveLogger implements LoggerInterface {
+  use LoggerTrait;
+
+  protected $channel;
+  protected $message;
+
+  public function __construct(LoggerChannel $channel) {
+    $this->channel = $channel;
+  }
+
+  public function log($level, $message, array $context = []) {
+    $this->channel->log(rand(0, 7), $message, $context);
   }
 
 }

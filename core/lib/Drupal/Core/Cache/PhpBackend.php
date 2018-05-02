@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Cache\PhpBackend.
- */
-
 namespace Drupal\Core\Cache;
 
+use Drupal\Component\Assertion\Inspector;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Component\Utility\Crypt;
 
@@ -33,7 +29,7 @@ class PhpBackend implements CacheBackendInterface {
   /**
    * Array to store cache objects.
    */
-  protected $cache = array();
+  protected $cache = [];
 
   /**
    * The cache tags checksum provider.
@@ -88,7 +84,7 @@ class PhpBackend implements CacheBackendInterface {
    */
   public function setMultiple(array $items) {
     foreach ($items as $cid => $item) {
-      $this->set($cid, $item['data'], isset($item['expire']) ? $item['expire'] : CacheBackendInterface::CACHE_PERMANENT, isset($item['tags']) ? $item['tags'] : array());
+      $this->set($cid, $item['data'], isset($item['expire']) ? $item['expire'] : CacheBackendInterface::CACHE_PERMANENT, isset($item['tags']) ? $item['tags'] : []);
     }
   }
 
@@ -96,7 +92,7 @@ class PhpBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function getMultiple(&$cids, $allow_invalid = FALSE) {
-    $ret = array();
+    $ret = [];
 
     foreach ($cids as $cid) {
       if ($item = $this->get($cid, $allow_invalid)) {
@@ -147,16 +143,17 @@ class PhpBackend implements CacheBackendInterface {
   /**
    * {@inheritdoc}
    */
-  public function set($cid, $data, $expire = Cache::PERMANENT, array $tags = array()) {
-    assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($tags)', 'Cache Tags must be strings.');
-    $item = (object) array(
+  public function set($cid, $data, $expire = Cache::PERMANENT, array $tags = []) {
+    assert(Inspector::assertAllStrings($tags), 'Cache Tags must be strings.');
+
+    $item = (object) [
       'cid' => $cid,
       'data' => $data,
       'created' => round(microtime(TRUE), 3),
       'expire' => $expire,
       'tags' => array_unique($tags),
       'checksum' => $this->checksumProvider->getCurrentChecksum($tags),
-    );
+    ];
     $this->writeItem($this->normalizeCid($cid), $item);
   }
 
@@ -216,7 +213,7 @@ class PhpBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function invalidateAll() {
-    foreach($this->storage()->listAll() as $cidhash) {
+    foreach ($this->storage()->listAll() as $cidhash) {
       $this->invalidatebyHash($cidhash);
     }
   }
@@ -231,7 +228,7 @@ class PhpBackend implements CacheBackendInterface {
    * {@inheritdoc}
    */
   public function removeBin() {
-    $this->cache = array();
+    $this->cache = [];
     $this->storage()->deleteAll();
   }
 

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Session\AccountInterface.
- */
-
 namespace Drupal\Core\Session;
 
 /**
@@ -111,7 +106,7 @@ interface AccountInterface {
    * @return string
    *   An unsanitized plain-text string with the name of this account that is
    *   used to log in. Only display this name to admins and to the user who owns
-   *   this account, and only in the context of the name used to login. For
+   *   this account, and only in the context of the name used to log in. For
    *   any other display purposes, use
    *   \Drupal\Core\Session\AccountInterface::getDisplayName() instead.
    *
@@ -153,8 +148,9 @@ interface AccountInterface {
   /**
    * Returns the email address of this account.
    *
-   * @return string
-   *   The email address.
+   * @return string|null
+   *   The email address, or NULL if the account is anonymous or the user does
+   *   not have an email address.
    */
   public function getEmail();
 

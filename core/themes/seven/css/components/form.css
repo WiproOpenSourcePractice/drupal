@@ -10,7 +10,19 @@ fieldset:not(.fieldgroup) {
   border-radius: 2px;
   margin: 1em 0;
   padding: 30px 18px 18px;
+  min-width: 0;
   position: relative;
+}
+/**
+ * We've temporarily added this Firefox specific rule here to fix fieldset
+ * widths.
+ * @todo remove once this Mozilla bug is fixed.
+ * See https://bugzilla.mozilla.org/show_bug.cgi?id=504622
+ */
+@-moz-document url-prefix() {
+  fieldset:not(.fieldgroup) {
+    display: table-cell;
+  }
 }
 fieldset:not(.fieldgroup) > legend {
   font-size: 1em;
@@ -23,6 +35,12 @@ fieldset:not(.fieldgroup) > legend {
 .fieldgroup {
   min-width: 0;
 }
+/**
+ * We've temporarily added this Firefox specific rule here to fix fieldset
+ * widths.
+ * @todo remove once this Mozilla bug is fixed.
+ * See https://bugzilla.mozilla.org/show_bug.cgi?id=504622
+ */
 @-moz-document url-prefix() {
   .fieldgroup {
     display: table-cell;
@@ -53,7 +71,7 @@ label[for] {
   vertical-align: middle;
 }
 .form-disabled label {
-  color: #737373;
+  color: #686868;
 }
 .form-disabled input.form-text,
 .form-disabled input.form-tel,
@@ -66,7 +84,7 @@ label[for] {
 .form-disabled textarea.form-textarea,
 .form-disabled select.form-select {
   border-color: #d4d4d4;
-  background-color: hsla(0, 0%, 0%, .08);
+  background-color: hsla(0, 0%, 0%, 0.08);
   box-shadow: none;
 }
 .form-item input.error,
@@ -87,11 +105,10 @@ label[for] {
 .form-item select.error:focus {
   border-color: #e62600;
   outline: 0;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .05), 0 0 8px 1px #e62600;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 8px 1px #e62600;
   background-color: #fcf4f2;
 }
 .form-required:after {
-  background-image: url(../../images/required.svg);
   background-size: 7px 7px;
   width: 7px;
   height: 7px;
@@ -109,7 +126,6 @@ label[for] {
   margin: 0;
   padding: 0.25em 0.666em 0;
 }
-
 
 /* Filter */
 ul.tips,
@@ -159,22 +175,20 @@ input.form-date,
 input.form-time,
 textarea.form-textarea {
   box-sizing: border-box;
-  padding: .3em .4em .3em .5em; /* LTR */
+  padding: 0.3em 0.4em 0.3em 0.5em; /* LTR */
   max-width: 100%;
   border: 1px solid #b8b8b8;
   border-top-color: #999;
-  background: #fff;
-  color: #333;
   border-radius: 2px;
   background: #fcfcfa;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .125);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.125);
   font-size: 1em;
   color: #595959;
   -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
   transition: border linear 0.2s, box-shadow linear 0.2s;
 }
 [dir="rtl"] textarea.form-textarea {
-  padding: .3em .5em .3em .4em;
+  padding: 0.3em 0.5em 0.3em 0.4em;
 }
 .form-text:focus,
 .form-tel:focus,
@@ -189,7 +203,7 @@ textarea.form-textarea {
 .form-time:focus {
   border-color: #40b6ff;
   outline: 0;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .05), 0 0 8px #40b6ff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 8px #40b6ff;
   background-color: #fff;
 }
 
@@ -199,6 +213,7 @@ textarea.form-textarea {
   width: auto;
 }
 
+.form-item-options-group-info-identifier,
 .form-item-pass .description {
   clear: both;
 }
@@ -224,6 +239,7 @@ select {
     background:
       url(../../../../misc/icons/333333/caret-down.svg) no-repeat 99% 63%,
       -webkit-linear-gradient(top, #f6f6f3, #e7e7df); /* LTR */
+
     text-shadow: 0 1px hsla(0, 0%, 100%, 0.6);
     font-size: 0.875rem;
     -webkit-transition: all 0.1s;
@@ -236,8 +252,9 @@ select {
   }
   select:focus,
   select:hover {
-    background-image: url(../../../../misc/icons/333333/caret-down.svg),
-    -webkit-linear-gradient(top, #fcfcfa, #e9e9dd);
+    background-image:
+      url(../../../../misc/icons/333333/caret-down.svg),
+      -webkit-linear-gradient(top, #fcfcfa, #e9e9dd);
     color: #1a1a1a;
   }
   select:hover {
@@ -309,6 +326,9 @@ select {
   #edit-cancel {
     display: block;
     margin: 10px 0 0 0;
+  }
+  select {
+    width: 100%;
   }
 }
 

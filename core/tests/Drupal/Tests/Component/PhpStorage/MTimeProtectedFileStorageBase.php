@@ -1,11 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Component\PhpStorage\MTimeProtectedFileStorageBase.
- */
-
 namespace Drupal\Tests\Component\PhpStorage;
+
+use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\Random;
 
 /**
  * Base test class for MTime protected storage.
@@ -39,13 +37,16 @@ abstract class MTimeProtectedFileStorageBase extends PhpStorageTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->secret = $this->randomMachineName();
+    // Random generator.
+    $random = new Random();
 
-    $this->settings = array(
-      'directory' =>  $this->directory,
+    $this->secret = $random->name(8, TRUE);
+
+    $this->settings = [
+      'directory' => $this->directory,
       'bin' => 'test',
       'secret' => $this->secret,
-    );
+    ];
   }
 
   /**
@@ -74,7 +75,7 @@ abstract class MTimeProtectedFileStorageBase extends PhpStorageTestBase {
     $php = new $this->storageClass($this->settings);
     $name = 'simpletest.php';
     $php->save($name, '<?php');
-    $expected_root_directory =  $this->directory . '/test';
+    $expected_root_directory = $this->directory . '/test';
     if (substr($name, -4) === '.php') {
       $expected_directory = $expected_root_directory . '/' . substr($name, 0, -4);
     }
@@ -82,18 +83,18 @@ abstract class MTimeProtectedFileStorageBase extends PhpStorageTestBase {
       $expected_directory = $expected_root_directory . '/' . $name;
     }
     $directory_mtime = filemtime($expected_directory);
-    $expected_filename = $expected_directory . '/' . hash_hmac('sha256', $name, $this->secret . $directory_mtime) . '.php';
+    $expected_filename = $expected_directory . '/' . Crypt::hmacBase64($name, $this->secret . $directory_mtime) . '.php';
 
     // Ensure the file exists and that it and the containing directory have
     // minimal permissions. fileperms() can return high bits unrelated to
     // permissions, so mask with 0777.
     $this->assertTrue(file_exists($expected_filename));
-    $this->assertSame(fileperms($expected_filename) & 0777, 0444);
-    $this->assertSame(fileperms($expected_directory) & 0777, 0777);
+    $this->assertSame(0444, fileperms($expected_filename) & 0777);
+    $this->assertSame(0777, fileperms($expected_directory) & 0777);
 
     // Ensure the root directory for the bin has a .htaccess file denying web
     // access.
-    $this->assertSame(file_get_contents($expected_root_directory . '/.htaccess'), call_user_func(array($this->storageClass, 'htaccessLines')));
+    $this->assertSame(file_get_contents($expected_root_directory . '/.htaccess'), call_user_func([$this->storageClass, 'htaccessLines']));
 
     // Ensure that if the file is replaced with an untrusted one (due to another
     // script's file upload vulnerability), it does not get loaded. Since mtime
@@ -120,9 +121,9 @@ abstract class MTimeProtectedFileStorageBase extends PhpStorageTestBase {
       chmod($expected_filename, 0400);
       chmod($expected_directory, 0100);
       $this->assertSame(file_get_contents($expected_filename), $untrusted_code);
-      $this->assertSame($php->exists($name), $this->expected[$i]);
-      $this->assertSame($php->load($name), $this->expected[$i]);
-      $this->assertSame($GLOBALS['hacked'], $this->expected[$i]);
+      $this->assertSame($this->expected[$i], $php->exists($name));
+      $this->assertSame($this->expected[$i], $php->load($name));
+      $this->assertSame($this->expected[$i], $GLOBALS['hacked']);
     }
     unset($GLOBALS['hacked']);
   }

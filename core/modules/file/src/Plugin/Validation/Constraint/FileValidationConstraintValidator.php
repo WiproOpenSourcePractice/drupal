@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\file\Plugin\Validation\Constraint\FileValidationConstraintValidator.
- */
-
 namespace Drupal\file\Plugin\Validation\Constraint;
 
 use Symfony\Component\Validator\Constraint;
@@ -20,7 +15,12 @@ class FileValidationConstraintValidator extends ConstraintValidator {
    */
   public function validate($value, Constraint $constraint) {
     // Get the file to execute validators.
-    $file = $value->get('entity')->getTarget()->getValue();
+    $target = $value->get('entity')->getTarget();
+    if (!$target) {
+      return;
+    }
+
+    $file = $target->getValue();
     // Get the validators.
     $validators = $value->getUploadValidators();
     // Checks that a file meets the criteria specified by the validators.

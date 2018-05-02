@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\form_test\Form\FormTestPlaceholderForm.
- */
-
 namespace Drupal\form_test\Form;
 
 use Drupal\Core\Form\FormBase;
@@ -12,6 +7,8 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Builds a form to test the placeholder attribute.
+ *
+ * @internal
  */
 class FormTestPlaceholderForm extends FormBase {
 
@@ -26,12 +23,12 @@ class FormTestPlaceholderForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    foreach (array('textfield', 'textarea', 'url', 'password', 'search', 'tel', 'email', 'number') as $type) {
-      $form[$type] = array(
+    foreach (['textfield', 'textarea', 'url', 'password', 'search', 'tel', 'email', 'number'] as $type) {
+      $form[$type] = [
         '#type' => $type,
         '#title' => $type,
         '#placeholder' => 'placeholder-text',
-      );
+      ];
     }
 
     return $form;

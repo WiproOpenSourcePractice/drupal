@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\StreamWrapper\PhpStreamWrapperInterface.
- */
-
 namespace Drupal\Core\StreamWrapper;
 
 /**
@@ -69,7 +64,7 @@ interface PhpStreamWrapperInterface {
   public function stream_cast($cast_as);
 
   /**
-   * @return void
+   * Closes stream.
    */
   public function stream_close();
 

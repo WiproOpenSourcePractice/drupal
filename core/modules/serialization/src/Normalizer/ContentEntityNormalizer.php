@@ -1,11 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\serialization\Normalizer\ContentEntityNormalizer.
- */
-
 namespace Drupal\serialization\Normalizer;
+
+use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
 
 /**
  * Normalizes/denormalizes Drupal content entities into an array structure.
@@ -13,24 +10,23 @@ namespace Drupal\serialization\Normalizer;
 class ContentEntityNormalizer extends EntityNormalizer {
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var array
+   * {@inheritdoc}
    */
   protected $supportedInterfaceOrClass = ['Drupal\Core\Entity\ContentEntityInterface'];
 
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = array()) {
-    $context += array(
+  public function normalize($entity, $format = NULL, array $context = []) {
+    $context += [
       'account' => NULL,
-    );
+    ];
 
     $attributes = [];
-    foreach ($object as $name => $field) {
-      if ($field->access('view', $context['account'])) {
-        $attributes[$name] = $this->serializer->normalize($field, $format, $context);
+    /** @var \Drupal\Core\Entity\Entity $entity */
+    foreach (TypedDataInternalPropertiesHelper::getNonInternalProperties($entity->getTypedData()) as $name => $field_items) {
+      if ($field_items->access('view', $context['account'])) {
+        $attributes[$name] = $this->serializer->normalize($field_items, $format, $context);
       }
     }
 

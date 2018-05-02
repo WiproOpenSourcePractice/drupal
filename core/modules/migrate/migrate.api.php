@@ -5,101 +5,86 @@
  * Hooks provided by the Migrate module.
  */
 
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\MigrateSourceInterface;
 use Drupal\migrate\Row;
 
 /**
- * @defgroup migration Migration API
+ * @defgroup migration Migrate API
  * @{
- * Overview of the Migration API, which migrates data into Drupal.
+ * Overview of the Migrate API, which migrates data into Drupal.
  *
- * @section overview Overview of migration
+ * @section overview Overview of a migration
  * Migration is an
  * @link http://wikipedia.org/wiki/Extract,_transform,_load Extract, Transform, Load @endlink
- * (ETL) process. For historical reasons, in the Drupal migration tool the
- * extract phase is called "source", the transform phase is called "process",
- * and the load phase is called "destination".
+ * (ETL) process. In the Drupal Migrate API, the extract phase is called
+ * 'source', the transform phase is called 'process', and the load phase is
+ * called 'destination'. It is important to understand that the term 'load' in
+ * ETL refers to loading data into the storage while in a typical Drupal context
+ * the term 'load' refers to loading data from storage.
  *
- * Source, process, and destination phases are each provided by plugins. Source
- * plugins extract data from a data source in "rows", containing "properties".
- * Each row is handed off to one or more series of process plugins, where each
- * series operates to transform the row data into one result property. After all
- * the properties are processed, the resulting row is handed off to a
- * destination plugin, which saves the data.
+ * In the source phase, a set of data, called the row, is retrieved from the
+ * data source. The data can be migrated from a database, loaded from a file
+ * (for example CSV, JSON or XML) or fetched from a web service (for example RSS
+ * or REST). The row is sent to the process phase where it is transformed as
+ * needed or marked to be skipped. Processing can also determine if a 'stub'
+ * needs to be created. For example, if a term has a parent term which hasn't
+ * been migrated yet, a stub term is created so that the parent relation can be
+ * established, and the stub is updated at a later point. After processing, the
+ * transformed row is passed to the destination phase where it is loaded (saved)
+ * into the target Drupal site.
  *
- * The Migrate module provides process plugins for common operations (setting
- * default values, mapping values, etc.), and destination plugins for Drupal
- * core objects (configuration, entity, URL alias, etc.). The Migrate Drupal
- * module provides source plugins to extract data from various versions of
- * Drupal. Custom and contributed modules can provide additional plugins; see
- * the @link plugin_api Plugin API topic @endlink for generic information about
- * providing plugins, and sections below for details about the plugin types.
+ * Migrate API uses the Drupal plugin system for many different purposes. Most
+ * importantly, the overall ETL process is defined as a migration plugin and the
+ * three phases (source, process and destination) have their own plugin types.
  *
- * The configuration of migrations is stored in configuration entities, which
- * list the IDs and configurations of the plugins that are involved. See
- * @ref sec_entity below for details. To migrate an entire site, you'll need to
- * create a migration manifest; see @ref sec_manifest for details.
+ * @section sec_migrations Migrate API migration plugins
+ * Migration plugin definitions are stored in a module's 'migrations' directory.
+ * The plugin class is \Drupal\migrate\Plugin\Migration, with interface
+ * \Drupal\migrate\Plugin\MigrationInterface. Migration plugins are managed by
+ * the \Drupal\migrate\Plugin\MigrationPluginManager class. Migration plugins
+ * are only available if the providers of their source plugins are installed.
  *
- * https://www.drupal.org/node/2127611 has more complete information on the
- * Migration API, including information on load plugins, which are only used
- * in Drupal 6 migration.
+ * @link https://www.drupal.org/docs/8/api/migrate-api/migrate-destination-plugins-examples Example migrations in Migrate API handbook. @endlink
  *
- * @section sec_source Source plugins
- * Migration source plugins implement
+ * @section sec_source Migrate API source plugins
+ * Migrate API source plugins implement
  * \Drupal\migrate\Plugin\MigrateSourceInterface and usually extend
  * \Drupal\migrate\Plugin\migrate\source\SourcePluginBase. They are annotated
- * with \Drupal\migrate\Annotation\MigrateSource annotation, and must be in
- * namespace subdirectory Plugin\migrate\source under the namespace of the
- * module that defines them. Migration source plugins are managed by the
- * \Drupal\migrate\Plugin\MigratePluginManager class.
+ * with \Drupal\migrate\Annotation\MigrateSource annotation and must be in
+ * namespace subdirectory 'Plugin\migrate\source' under the namespace of the
+ * module that defines them. Migrate API source plugins are managed by the
+ * \Drupal\migrate\Plugin\MigrateSourcePluginManager class.
  *
- * @section sec_process Process plugins
- * Migration process plugins implement
+ * @link https://api.drupal.org/api/drupal/namespace/Drupal!migrate!Plugin!migrate!source List of source plugins provided by the core Migrate module. @endlink
+ * @link https://www.drupal.org/docs/8/api/migrate-api/migrate-source-plugins Core and contributed source plugin usage examples in Migrate API handbook. @endlink
+ *
+ * @section sec_process Migrate API process plugins
+ * Migrate API process plugins implement
  * \Drupal\migrate\Plugin\MigrateProcessInterface and usually extend
- * \Drupal\migrate\ProcessPluginBase. They are annotated
- * with \Drupal\migrate\Annotation\MigrateProcessPlugin annotation, and must be
- * in namespace subdirectory Plugin\migrate\process under the namespace of the
- * module that defines them. Migration process plugins are managed by the
+ * \Drupal\migrate\ProcessPluginBase. They are annotated with
+ * \Drupal\migrate\Annotation\MigrateProcessPlugin annotation and must be in
+ * namespace subdirectory 'Plugin\migrate\process' under the namespace of the
+ * module that defines them. Migrate API process plugins are managed by the
  * \Drupal\migrate\Plugin\MigratePluginManager class.
  *
- * @section sec_destination Destination plugins
- * Migration destination plugins implement
+ * @link https://api.drupal.org/api/drupal/namespace/Drupal!migrate!Plugin!migrate!process List of process plugins for common operations provided by the core Migrate module. @endlink
+ *
+ * @section sec_destination Migrate API destination plugins
+ * Migrate API destination plugins implement
  * \Drupal\migrate\Plugin\MigrateDestinationInterface and usually extend
  * \Drupal\migrate\Plugin\migrate\destination\DestinationBase. They are
- * annotated with \Drupal\migrate\Annotation\MigrateDestination annotation, and
- * must be in namespace subdirectory Plugin\migrate\destination under the
- * namespace of the module that defines them. Migration destination plugins
- * are managed by the
- * \Drupal\migrate\Plugin\MigrateDestinationPluginManager class.
+ * annotated with \Drupal\migrate\Annotation\MigrateDestination annotation and
+ * must be in namespace subdirectory 'Plugin\migrate\destination' under the
+ * namespace of the module that defines them. Migrate API destination plugins
+ * are managed by the \Drupal\migrate\Plugin\MigrateDestinationPluginManager
+ * class.
  *
- * @section sec_entity Migration configuration entities
- * The definition of how to migrate each type of data is stored in configuration
- * entities. The migration configuration entity class is
- * \Drupal\migrate\Entity\Migration, with interface
- * \Drupal\migrate\Entity\MigrationInterface; the configuration schema can be
- * found in the migrate.schema.yml file. Migration configuration consists of IDs
- * and configuration for the source, process, and destination plugins, as well
- * as information on dependencies. Process configuration consists of sections,
- * each of which defines the series of process plugins needed for one
- * destination property. You can find examples of migration configuration files
- * in the core/modules/migrate_drupal/config/install directory.
+ * @link https://api.drupal.org/api/drupal/namespace/Drupal!migrate!Plugin!migrate!destination List of destination plugins for Drupal configuration and content entities provided by the core Migrate module. @endlink
  *
- * @section sec_manifest Migration manifests
- * You can run a migration with the "drush migrate-manifest" command, providing
- * a migration manifest file. This file lists the configuration names of the
- * migrations you want to execute, as well as any dependencies they have (you
- * can find these in the "migration_dependencies" sections of the individual
- * configuration files). For example, to migrate blocks from a Drupal 6 site,
- * you would list:
- * @code
- * # Migrate blocks from Drupal 6 to 8
- * - d6_filter_format
- * - d6_custom_block
- * - d6_block
- * @endcode
- *
- * @see update_api
+ * @section sec_more_info Documentation handbooks
+ * @link https://www.drupal.org/docs/8/api/migrate-api Migrate API handbook. @endlink
+ * @link https://www.drupal.org/docs/8/upgrade Upgrading to Drupal 8 handbook. @endlink
  * @}
  */
 
@@ -117,15 +102,67 @@ use Drupal\migrate\Row;
  *
  * hook_migrate_MIGRATION_ID_prepare_row() is also available.
  *
+ * @param \Drupal\migrate\Row $row
+ *   The row being imported.
+ * @param \Drupal\migrate\Plugin\MigrateSourceInterface $source
+ *   The source migration.
+ * @param \Drupal\migrate\Plugin\MigrationInterface $migration
+ *   The current migration.
+ *
  * @ingroup migration
  */
 function hook_migrate_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
   if ($migration->id() == 'd6_filter_formats') {
-    $value = $source->getDatabase()->query('SELECT value FROM {variable} WHERE name = :name', array(':name' => 'mymodule_filter_foo_' . $row->getSourceProperty('format')))->fetchField();
+    $value = $source->getDatabase()->query('SELECT value FROM {variable} WHERE name = :name', [':name' => 'mymodule_filter_foo_' . $row->getSourceProperty('format')])->fetchField();
     if ($value) {
       $row->setSourceProperty('settings:mymodule:foo', unserialize($value));
     }
   }
+}
+
+/**
+ * Allows adding data to a row for a migration with the specified ID.
+ *
+ * This provides the same functionality as hook_migrate_prepare_row() but
+ * removes the need to check the value of $migration->id().
+ *
+ * @param \Drupal\migrate\Row $row
+ *   The row being imported.
+ * @param \Drupal\migrate\Plugin\MigrateSourceInterface $source
+ *   The source migration.
+ * @param \Drupal\migrate\Plugin\MigrationInterface $migration
+ *   The current migration.
+ *
+ * @ingroup migration
+ */
+function hook_migrate_MIGRATION_ID_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
+  $value = $source->getDatabase()->query('SELECT value FROM {variable} WHERE name = :name', [':name' => 'mymodule_filter_foo_' . $row->getSourceProperty('format')])->fetchField();
+  if ($value) {
+    $row->setSourceProperty('settings:mymodule:foo', unserialize($value));
+  }
+}
+
+/**
+ * Allows altering the list of discovered migration plugins.
+ *
+ * Modules are able to alter specific migrations structures or even remove or
+ * append additional migrations to the discovery. For example, this
+ * implementation filters out Drupal 6 migrations from the discovered migration
+ * list. This is done by checking the migration tags.
+ *
+ * @param array[] $migrations
+ *   An associative array of migrations keyed by migration ID. Each value is the
+ *   migration array, obtained by decoding the migration YAML file and enriched
+ *   with some meta information added during discovery phase, like migration
+ *   'class', 'provider' or '_discovered_file_path'.
+ *
+ * @ingroup migration
+ */
+function hook_migration_plugins_alter(array &$migrations) {
+  $migrations = array_filter($migrations, function (array $migration) {
+    $tags = isset($migration['migration_tags']) ? (array) $migration['migration_tags'] : [];
+    return !in_array('Drupal 6', $tags);
+  });
 }
 
 /**

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Cache\Context\CacheContextsManager.
- */
-
 namespace Drupal\Core\Cache\Context;
 
 use Drupal\Core\Cache\CacheableMetadata;
@@ -76,7 +71,7 @@ class CacheContextsManager {
    *   An array of available cache contexts and corresponding labels.
    */
   public function getLabels($include_calculated_cache_contexts = FALSE) {
-    $with_labels = array();
+    $with_labels = [];
     foreach ($this->contexts as $context) {
       $service = $this->getService($context);
       if (!$include_calculated_cache_contexts && $service instanceof CalculatedCacheContextInterface) {
@@ -103,10 +98,9 @@ class CacheContextsManager {
    * @return \Drupal\Core\Cache\Context\ContextCacheKeys
    *   The ContextCacheKeys object containing the converted cache keys and
    *   cacheability metadata.
-   *
    */
   public function convertTokensToKeys(array $context_tokens) {
-    assert('$this->assertValidTokens($context_tokens)');
+    assert($this->assertValidTokens($context_tokens));
     $cacheable_metadata = new CacheableMetadata();
     $optimized_tokens = $this->optimizeTokens($context_tokens);
     // Iterate over cache contexts that have been optimized away and get their
@@ -200,7 +194,7 @@ class CacheContextsManager {
             $ancestor_found = TRUE;
           }
 
-        } while(!$ancestor_found && strpos($ancestor, '.') !== FALSE);
+        } while (!$ancestor_found && strpos($ancestor, '.') !== FALSE);
         if (!$ancestor_found) {
           $optimized_content_tokens[] = $context_token;
         }

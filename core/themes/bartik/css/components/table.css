@@ -48,6 +48,10 @@ tr th {
   border: 1px solid #fff;
   text-align: left; /* LTR */
 }
+.tabledrag-handle:hover,
+.tabledrag-handle {
+  border: none;
+}
 [dir="rtl"] tr td,
 [dir="rtl"] tr th {
   text-align: right;
@@ -64,6 +68,7 @@ tr th {
     display: none;
   }
 }
+
 @media screen and (max-width: 60em) { /* 920px */
   th.priority-low,
   td.priority-low {

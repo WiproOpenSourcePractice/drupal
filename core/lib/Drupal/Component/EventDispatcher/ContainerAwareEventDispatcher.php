@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher.
- */
-
 namespace Drupal\Component\EventDispatcher;
 
-use Symfony\Component\DependencyInjection\IntrospectableContainerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -41,7 +36,7 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   /**
    * The service container.
    *
-   * @var \Symfony\Component\DependencyInjection\IntrospectableContainerInterface;
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface;
    */
   protected $container;
 
@@ -71,7 +66,7 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   /**
    * Constructs a container aware event dispatcher.
    *
-   * @param \Symfony\Component\DependencyInjection\IntrospectableContainerInterface $container
+   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
    *   The service container.
    * @param array $listeners
    *   A nested array of listener definitions keyed by event name and priority.
@@ -82,7 +77,7 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
    *   A service entry will be resolved to a callable only just before its
    *   invocation.
    */
-  public function __construct(IntrospectableContainerInterface $container, array $listeners = []) {
+  public function __construct(ContainerInterface $container, array $listeners = []) {
     $this->container = $container;
     $this->listeners = $listeners;
     $this->unsorted = [];
@@ -95,9 +90,6 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
     if ($event === NULL) {
       $event = new Event();
     }
-
-    $event->setDispatcher($this);
-    $event->setName($event_name);
 
     if (isset($this->listeners[$event_name])) {
       // Sort listeners if necessary.
@@ -112,8 +104,11 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
           if (!isset($definition['callable'])) {
             $definition['callable'] = [$this->container->get($definition['service'][0]), $definition['service'][1]];
           }
+          if (is_array($definition['callable']) && isset($definition['callable'][0]) && $definition['callable'][0] instanceof \Closure) {
+            $definition['callable'][0] = $definition['callable'][0]();
+          }
 
-          $definition['callable']($event, $event_name, $this);
+          call_user_func($definition['callable'], $event, $event_name, $this);
           if ($event->isPropagationStopped()) {
             return $event;
           }
@@ -152,6 +147,9 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
           if (!isset($definition['callable'])) {
             $definition['callable'] = [$this->container->get($definition['service'][0]), $definition['service'][1]];
           }
+          if (is_array($definition['callable']) && isset($definition['callable'][0]) && $definition['callable'][0] instanceof \Closure) {
+            $definition['callable'][0] = $definition['callable'][0]();
+          }
 
           $result[] = $definition['callable'];
         }
@@ -164,8 +162,49 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   /**
    * {@inheritdoc}
    */
+  public function getListenerPriority($event_name, $listener) {
+    if (!isset($this->listeners[$event_name])) {
+      return;
+    }
+    if (is_array($listener) && isset($listener[0]) && $listener[0] instanceof \Closure) {
+      $listener[0] = $listener[0]();
+    }
+    // Resolve service definitions if the listener has not been found so far.
+    foreach ($this->listeners[$event_name] as $priority => &$definitions) {
+      foreach ($definitions as $key => &$definition) {
+        if (!isset($definition['callable'])) {
+          // Once the callable is retrieved we keep it for subsequent method
+          // invocations on this class.
+          $definition['callable'] = [
+            $this->container->get($definition['service'][0]),
+            $definition['service'][1],
+          ];
+        }
+        if (is_array($definition['callable']) && isset($definition['callable'][0]) && $definition['callable'][0] instanceof \Closure) {
+          $definition['callable'][0] = $definition['callable'][0]();
+        }
+        if ($definition['callable'] === $listener) {
+          return $priority;
+        }
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function hasListeners($event_name = NULL) {
-    return (bool) count($this->getListeners($event_name));
+    if ($event_name !== NULL) {
+      return !empty($this->listeners[$event_name]);
+    }
+
+    foreach ($this->listeners as $event_listeners) {
+      if ($event_listeners) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
@@ -193,9 +232,22 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
           $definition['callable'] = [$this->container->get($definition['service'][0]), $definition['service'][1]];
         }
 
-        if ($definition['callable'] === $listener) {
-          unset($this->listeners[$event_name][$priority][$key]);
+        if (is_array($definition['callable']) && isset($definition['callable'][0]) && $definition['callable'][0] instanceof \Closure && !$listener instanceof \Closure) {
+          $definition['callable'][0] = $definition['callable'][0]();
         }
+
+        if (is_array($definition['callable']) && isset($definition['callable'][0]) && !$definition['callable'][0] instanceof \Closure && is_array($listener) && isset($listener[0]) && $listener[0] instanceof \Closure) {
+          $listener[0] = $listener[0]();
+        }
+        if ($definition['callable'] === $listener) {
+          unset($definitions[$key]);
+        }
+      }
+      if ($definitions) {
+        $this->listeners[$event_name][$priority] = $definitions;
+      }
+      else {
+        unset($this->listeners[$event_name][$priority]);
       }
     }
   }
@@ -206,14 +258,14 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
   public function addSubscriber(EventSubscriberInterface $subscriber) {
     foreach ($subscriber->getSubscribedEvents() as $event_name => $params) {
       if (is_string($params)) {
-        $this->addListener($event_name, array($subscriber, $params));
+        $this->addListener($event_name, [$subscriber, $params]);
       }
       elseif (is_string($params[0])) {
-        $this->addListener($event_name, array($subscriber, $params[0]), isset($params[1]) ? $params[1] : 0);
+        $this->addListener($event_name, [$subscriber, $params[0]], isset($params[1]) ? $params[1] : 0);
       }
       else {
         foreach ($params as $listener) {
-          $this->addListener($event_name, array($subscriber, $listener[0]), isset($listener[1]) ? $listener[1] : 0);
+          $this->addListener($event_name, [$subscriber, $listener[0]], isset($listener[1]) ? $listener[1] : 0);
         }
       }
     }
@@ -226,11 +278,11 @@ class ContainerAwareEventDispatcher implements EventDispatcherInterface {
     foreach ($subscriber->getSubscribedEvents() as $event_name => $params) {
       if (is_array($params) && is_array($params[0])) {
         foreach ($params as $listener) {
-          $this->removeListener($event_name, array($subscriber, $listener[0]));
+          $this->removeListener($event_name, [$subscriber, $listener[0]]);
         }
       }
       else {
-        $this->removeListener($event_name, array($subscriber, is_string($params) ? $params : $params[0]));
+        $this->removeListener($event_name, [$subscriber, is_string($params) ? $params : $params[0]]);
       }
     }
   }

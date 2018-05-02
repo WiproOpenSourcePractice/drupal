@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\image\PathProcessor\PathProcessorImageStyles.
- */
-
 namespace Drupal\image\PathProcessor;
 
 use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
@@ -53,8 +48,11 @@ class PathProcessorImageStyles implements InboundPathProcessorInterface {
     if (strpos($path, '/' . $directory_path . '/styles/') === 0) {
       $path_prefix = '/' . $directory_path . '/styles/';
     }
-    elseif (strpos($path, '/system/files/styles/') === 0) {
+    // Check if the string '/system/files/styles/' exists inside the path,
+    // that means we have a case of private file's image style.
+    elseif (strpos($path, '/system/files/styles/') !== FALSE) {
       $path_prefix = '/system/files/styles/';
+      $path = substr($path, strpos($path, $path_prefix), strlen($path));
     }
     else {
       return $path;

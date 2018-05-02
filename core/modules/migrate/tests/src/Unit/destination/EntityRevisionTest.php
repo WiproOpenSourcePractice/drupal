@@ -9,6 +9,8 @@ namespace Drupal\Tests\migrate\Unit\destination;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\migrate\destination\EntityRevision as RealEntityRevision;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
@@ -22,7 +24,7 @@ use Drupal\Tests\UnitTestCase;
 class EntityRevisionTest extends UnitTestCase {
 
   /**
-   * @var \Drupal\migrate\Entity\MigrationInterface
+   * @var \Drupal\migrate\Plugin\MigrationInterface
    */
   protected $migration;
 
@@ -45,8 +47,14 @@ class EntityRevisionTest extends UnitTestCase {
     parent::setUp();
 
     // Setup mocks to be used when creating a revision destination.
-    $this->migration = $this->prophesize('\Drupal\migrate\Entity\MigrationInterface');
+    $this->migration = $this->prophesize(MigrationInterface::class);
     $this->storage = $this->prophesize('\Drupal\Core\Entity\EntityStorageInterface');
+
+    $entity_type = $this->prophesize(EntityTypeInterface::class);
+    $entity_type->getSingularLabel()->willReturn('crazy');
+    $entity_type->getPluralLabel()->willReturn('craziness');
+    $this->storage->getEntityType()->willReturn($entity_type->reveal());
+
     $this->entityManager = $this->prophesize('\Drupal\Core\Entity\EntityManagerInterface');
     $this->fieldTypeManager = $this->prophesize('\Drupal\Core\Field\FieldTypePluginManagerInterface');
   }
@@ -66,7 +74,7 @@ class EntityRevisionTest extends UnitTestCase {
     $this->storage->loadRevision(12)
       ->shouldBeCalled()
       ->willReturn($entity->reveal());
-    $row = new Row([], []);
+    $row = new Row();
     $this->assertEquals($entity->reveal(), $destination->getEntity($row, [12, 13]));
   }
 
@@ -211,7 +219,7 @@ class EntityRevision extends RealEntityRevision {
   /**
    * Allow public access for testing.
    */
-  public function save(ContentEntityInterface $entity, array $old_destination_id_values = array()) {
+  public function save(ContentEntityInterface $entity, array $old_destination_id_values = []) {
     return parent::save($entity, $old_destination_id_values);
   }
 

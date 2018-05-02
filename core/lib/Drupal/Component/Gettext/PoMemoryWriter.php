@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Component\Gettext\PoMemoryWriter.
- */
-
 namespace Drupal\Component\Gettext;
 
 /**
@@ -17,13 +12,13 @@ class PoMemoryWriter implements PoWriterInterface {
    *
    * @var array
    */
-  private $_items;
+  protected $items;
 
   /**
    * Constructor, initialize empty items.
    */
-  function __construct() {
-    $this->_items = array();
+  public function __construct() {
+    $this->items = [];
   }
 
   /**
@@ -35,7 +30,7 @@ class PoMemoryWriter implements PoWriterInterface {
       $item->setTranslation(implode(LOCALE_PLURAL_DELIMITER, $item->getTranslation()));
     }
     $context = $item->getContext();
-    $this->_items[$context != NULL ? $context : ''][$item->getSource()] = $item->getTranslation();
+    $this->items[$context != NULL ? $context : ''][$item->getSource()] = $item->getTranslation();
   }
 
   /**
@@ -54,7 +49,7 @@ class PoMemoryWriter implements PoWriterInterface {
    * @return array PoItem
    */
   public function getData() {
-    return $this->_items;
+    return $this->items;
   }
 
   /**
@@ -62,7 +57,7 @@ class PoMemoryWriter implements PoWriterInterface {
    *
    * Not implemented. Not relevant for the MemoryWriter.
    */
-  function setLangcode($langcode) {
+  public function setLangcode($langcode) {
   }
 
   /**
@@ -70,7 +65,7 @@ class PoMemoryWriter implements PoWriterInterface {
    *
    * Not implemented. Not relevant for the MemoryWriter.
    */
-  function getLangcode() {
+  public function getLangcode() {
   }
 
   /**
@@ -78,7 +73,7 @@ class PoMemoryWriter implements PoWriterInterface {
    *
    * Not implemented. Not relevant for the MemoryWriter.
    */
-  function getHeader() {
+  public function getHeader() {
   }
 
   /**
@@ -86,7 +81,7 @@ class PoMemoryWriter implements PoWriterInterface {
    *
    * Not implemented. Not relevant for the MemoryWriter.
    */
-  function setHeader(PoHeader $header) {
+  public function setHeader(PoHeader $header) {
   }
 
 }

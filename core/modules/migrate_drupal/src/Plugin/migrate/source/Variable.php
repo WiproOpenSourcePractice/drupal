@@ -1,15 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate_drupal\Plugin\migrate\source\Variable.
- */
-
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 
 /**
  * Drupal variable source from database.
@@ -18,7 +13,8 @@ use Drupal\migrate\Entity\MigrationInterface;
  * example for any normal source class returning multiple rows.
  *
  * @MigrateSource(
- *   id = "variable"
+ *   id = "variable",
+ *   source_module = "system",
  * )
  */
 class Variable extends DrupalSqlBase {
@@ -42,7 +38,7 @@ class Variable extends DrupalSqlBase {
    * {@inheritdoc}
    */
   protected function initializeIterator() {
-    return new \ArrayIterator(array($this->values()));
+    return new \ArrayIterator([$this->values()]);
   }
 
   /**
@@ -63,7 +59,7 @@ class Variable extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function count() {
+  public function count($refresh = FALSE) {
     return intval($this->query()->countQuery()->execute()->fetchField() > 0);
   }
 
@@ -80,7 +76,7 @@ class Variable extends DrupalSqlBase {
   public function query() {
     return $this->getDatabase()
       ->select('variable', 'v')
-      ->fields('v', array('name', 'value'))
+      ->fields('v', ['name', 'value'])
       ->condition('name', $this->variables, 'IN');
   }
 

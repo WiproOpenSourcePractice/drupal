@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\Entity\FieldConfig.
- */
-
 namespace Drupal\field\Entity;
 
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\FieldableEntityStorageInterface;
 use Drupal\Core\Field\FieldConfigBase;
 use Drupal\Core\Field\FieldException;
 use Drupal\field\FieldStorageConfigInterface;
@@ -19,6 +15,13 @@ use Drupal\field\FieldConfigInterface;
  * @ConfigEntityType(
  *   id = "field_config",
  *   label = @Translation("Field"),
+ *   label_collection = @Translation("Fields"),
+ *   label_singular = @Translation("field"),
+ *   label_plural = @Translation("fields"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count field",
+ *     plural = "@count fields",
+ *   ),
  *   handlers = {
  *     "access" = "Drupal\field\FieldConfigAccessControlHandler",
  *     "storage" = "Drupal\field\FieldConfigStorage"
@@ -72,7 +75,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    * Constructs a FieldConfig object.
    *
    * In most cases, Field entities are created via
-   * entity_create('field_config', $values), where $values is the same
+   * FieldConfig::create($values), where $values is the same
    * parameter as in this constructor.
    *
    * @param array $values
@@ -193,21 +196,26 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    * {@inheritdoc}
    */
   public static function preDelete(EntityStorageInterface $storage, array $fields) {
-    $state = \Drupal::state();
+    /** @var \Drupal\Core\Field\DeletedFieldsRepositoryInterface $deleted_fields_repository */
+    $deleted_fields_repository = \Drupal::service('entity_field.deleted_fields_repository');
+    $entity_type_manager = \Drupal::entityTypeManager();
 
     parent::preDelete($storage, $fields);
-    // Keep the field definitions in the state storage so we can use them
-    // later during field_purge_batch().
-    $deleted_fields = $state->get('field.field.deleted') ?: array();
+
+    // Keep the field definitions in the deleted fields repository so we can use
+    // them later during field_purge_batch().
+    /** @var \Drupal\field\FieldConfigInterface $field */
     foreach ($fields as $field) {
-      if (!$field->deleted) {
-        $config = $field->toArray();
-        $config['deleted'] = TRUE;
-        $config['field_storage_uuid'] = $field->getFieldStorageDefinition()->uuid();
-        $deleted_fields[$field->uuid()] = $config;
+      // Only mark a field for purging if there is data. Otherwise, just remove
+      // it.
+      $target_entity_storage = $entity_type_manager->getStorage($field->getTargetEntityTypeId());
+      if (!$field->deleted && $target_entity_storage instanceof FieldableEntityStorageInterface && $target_entity_storage->countFieldData($field->getFieldStorageDefinition(), TRUE)) {
+        $field = clone $field;
+        $field->deleted = TRUE;
+        $field->fieldStorage = NULL;
+        $deleted_fields_repository->addFieldDefinition($field);
       }
     }
-    $state->set('field.field.deleted', $deleted_fields);
   }
 
   /**
@@ -233,7 +241,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
 
     // Delete the associated field storages if they are not used anymore and are
     // not persistent.
-    $storages_to_delete = array();
+    $storages_to_delete = [];
     foreach ($fields as $field) {
       $storage_definition = $field->getFieldStorageDefinition();
       if (!$field->deleted && !$field->isUninstalling() && $storage_definition->isDeletable()) {
@@ -286,14 +294,30 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    */
   public function getFieldStorageDefinition() {
     if (!$this->fieldStorage) {
-      $fields = $this->entityManager()->getFieldStorageDefinitions($this->entity_type);
-      if (!isset($fields[$this->field_name])) {
+      $field_storage_definition = NULL;
+
+      $field_storage_definitions = $this->entityManager()->getFieldStorageDefinitions($this->entity_type);
+      if (isset($field_storage_definitions[$this->field_name])) {
+        $field_storage_definition = $field_storage_definitions[$this->field_name];
+      }
+      // If this field has been deleted, try to find its field storage
+      // definition in the deleted fields repository.
+      elseif ($this->deleted) {
+        $deleted_storage_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldStorageDefinitions();
+        foreach ($deleted_storage_definitions as $deleted_storage_definition) {
+          if ($deleted_storage_definition->getName() === $this->field_name) {
+            $field_storage_definition = $deleted_storage_definition;
+          }
+        }
+      }
+
+      if (!$field_storage_definition) {
         throw new FieldException("Attempt to create a field {$this->field_name} that does not exist on entity type {$this->entity_type}.");
       }
-      if (!$fields[$this->field_name] instanceof FieldStorageConfigInterface) {
+      if (!$field_storage_definition instanceof FieldStorageConfigInterface) {
         throw new FieldException("Attempt to create a configurable field of non-configurable field storage {$this->field_name}.");
       }
-      $this->fieldStorage = $fields[$this->field_name];
+      $this->fieldStorage = $field_storage_definition;
     }
 
     return $this->fieldStorage;
@@ -311,7 +335,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    */
   public function getDisplayOptions($display_context) {
     // Hide configurable fields by default.
-    return array('type' => 'hidden');
+    return ['region' => 'hidden'];
   }
 
   /**
@@ -326,6 +350,13 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    */
   public function isComputed() {
     return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUniqueIdentifier() {
+    return $this->uuid();
   }
 
   /**

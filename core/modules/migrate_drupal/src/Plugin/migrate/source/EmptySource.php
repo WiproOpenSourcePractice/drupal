@@ -1,26 +1,21 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate_drupal\Plugin\migrate\source\EmptySource.
- */
-
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Entity\DependencyTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\migrate\source\EmptySource as BaseEmptySource;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-
 
 /**
  * Source returning an empty row with Drupal specific config dependencies.
  *
  * @MigrateSource(
- *   id = "md_empty"
+ *   id = "md_empty",
+ *   source_module = "system",
  * )
  */
 class EmptySource extends BaseEmptySource implements ContainerFactoryPluginInterface, DependentPluginInterface {

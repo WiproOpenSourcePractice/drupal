@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Utility\LinkGeneratorInterface.
- */
-
 namespace Drupal\Core\Utility;
 
 use Drupal\Core\Link;
@@ -36,12 +31,12 @@ interface LinkGeneratorInterface {
    * This keeps the context of the link title ('settings' in the example) for
    * translators.
    *
-   * @param string|array $text
+   * @param string|array|\Drupal\Component\Render\MarkupInterface $text
    *   The link text for the anchor tag as a translated string or render array.
    *   Strings will be sanitized automatically. If you need to output HTML in
    *   the link text, use a render array or an already sanitized string such as
    *   the output of \Drupal\Component\Utility\Xss::filter() or
-   *   \Drupal\Component\Utility\SafeMarkup::format().
+   *   \Drupal\Component\Render\FormattableMarkup.
    * @param \Drupal\Core\Url $url
    *   The URL object used for the link. Amongst its options, the following may
    *   be set to affect the generated link:

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\batch_test\Form\BatchTestMockForm.
- */
-
 namespace Drupal\batch_test\Form;
 
 use Drupal\Core\Form\FormBase;
@@ -12,6 +7,8 @@ use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Generate form of id batch_test_mock_form.
+ *
+ * @internal
  */
 class BatchTestMockForm extends FormBase {
 
@@ -26,14 +23,14 @@ class BatchTestMockForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['test_value'] = array(
+    $form['test_value'] = [
       '#title' => t('Test value'),
       '#type' => 'textfield',
-    );
-    $form['submit'] = array(
+    ];
+    $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Submit'),
-    );
+    ];
 
     return $form;
   }

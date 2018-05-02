@@ -1,15 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\contextual\Element\ContextualLinksPlaceholder.
- */
-
 namespace Drupal\contextual\Element;
 
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Render\Element\RenderElement;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Provides a contextual_links_placeholder element.
@@ -23,12 +18,12 @@ class ContextualLinksPlaceholder extends RenderElement {
    */
   public function getInfo() {
     $class = get_class($this);
-    return array(
-      '#pre_render' => array(
-        array($class, 'preRenderPlaceholder'),
-      ),
+    return [
+      '#pre_render' => [
+        [$class, 'preRenderPlaceholder'],
+      ],
       '#id' => NULL,
-    );
+    ];
   }
 
   /**
@@ -48,7 +43,7 @@ class ContextualLinksPlaceholder extends RenderElement {
    * @see _contextual_links_to_id()
    */
   public static function preRenderPlaceholder(array $element) {
-    $element['#markup'] = SafeMarkup::format('<div@attributes></div>', ['@attributes' => new Attribute(['data-contextual-id' => $element['#id']])]);
+    $element['#markup'] = new FormattableMarkup('<div@attributes></div>', ['@attributes' => new Attribute(['data-contextual-id' => $element['#id']])]);
 
     return $element;
   }

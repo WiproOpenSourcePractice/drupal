@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\menu_test\TestControllers.
- */
-
 namespace Drupal\menu_test;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Controllers for testing the menu integration routing system.
@@ -43,7 +38,7 @@ class TestControllers {
       $_SESSION['menu_test'] = 0;
     }
     $_SESSION['menu_test']++;
-    return ['#markup' => SafeMarkup::format('Session menu_test is @count', ['@count' => $_SESSION['menu_test']])];
+    return ['#markup' => new FormattableMarkup('Session menu_test is @count', ['@count' => $_SESSION['menu_test']])];
   }
 
   /**
@@ -64,7 +59,7 @@ class TestControllers {
    */
   public function testDefaults($placeholder = NULL) {
     if ($placeholder) {
-      return ['#markup' => SafeMarkup::format("Sometimes there is a placeholder: '@placeholder'.", array('@placeholder' => $placeholder))];
+      return ['#markup' => new FormattableMarkup("Sometimes there is a placeholder: '@placeholder'.", ['@placeholder' => $placeholder])];
     }
     else {
       return ['#markup' => 'Sometimes there is no placeholder.'];
@@ -87,4 +82,5 @@ class TestControllers {
       ]
     ];
   }
+
 }

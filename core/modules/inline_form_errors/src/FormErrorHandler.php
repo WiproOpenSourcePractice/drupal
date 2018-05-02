@@ -1,15 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\inline_form_errors\FormErrorHandler.
- */
-
 namespace Drupal\inline_form_errors;
 
 use Drupal\Core\Form\FormElementHelper;
 use Drupal\Core\Form\FormErrorHandler as CoreFormErrorHandler;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\LinkGeneratorTrait;
 use Drupal\Core\Render\RendererInterface;
@@ -34,6 +30,13 @@ class FormErrorHandler extends CoreFormErrorHandler {
   protected $renderer;
 
   /**
+   * The messenger.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
    * Constructs a new FormErrorHandler.
    *
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
@@ -42,15 +45,27 @@ class FormErrorHandler extends CoreFormErrorHandler {
    *   The link generation service.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger.
    */
-  public function __construct(TranslationInterface $string_translation, LinkGeneratorInterface $link_generator, RendererInterface $renderer) {
+  public function __construct(TranslationInterface $string_translation, LinkGeneratorInterface $link_generator, RendererInterface $renderer, MessengerInterface $messenger) {
     $this->stringTranslation = $string_translation;
     $this->linkGenerator = $link_generator;
     $this->renderer = $renderer;
+    $this->messenger = $messenger;
   }
 
   /**
    * Loops through and displays all form errors.
+   *
+   * To disable inline form errors for an entire form set the
+   * #disable_inline_form_errors property to TRUE on the top level of the $form
+   * array:
+   * @code
+   * $form['#disable_inline_form_errors'] = TRUE;
+   * @endcode
+   * This should only be done when another appropriate accessibility strategy is
+   * in place.
    *
    * @param array $form
    *   An associative array containing the structure of the form.
@@ -58,6 +73,12 @@ class FormErrorHandler extends CoreFormErrorHandler {
    *   The current state of the form.
    */
   protected function displayErrorMessages(array $form, FormStateInterface $form_state) {
+    // Skip generating inline form errors when opted out.
+    if (!empty($form['#disable_inline_form_errors'])) {
+      parent::displayErrorMessages($form, $form_state);
+      return;
+    }
+
     $error_links = [];
     $errors = $form_state->getErrors();
     // Loop through all form errors and check if we need to display a link.
@@ -86,7 +107,7 @@ class FormErrorHandler extends CoreFormErrorHandler {
 
     // Set normal error messages for all remaining errors.
     foreach ($errors as $error) {
-      $this->drupalSetMessage($error, 'error');
+      $this->messenger->addError($error);
     }
 
     if (!empty($error_links)) {
@@ -101,7 +122,7 @@ class FormErrorHandler extends CoreFormErrorHandler {
         ],
       ];
       $message = $this->renderer->renderPlain($render_array);
-      $this->drupalSetMessage($message, 'error');
+      $this->messenger->addError($message);
     }
   }
 

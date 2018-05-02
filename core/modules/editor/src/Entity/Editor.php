@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\editor\Entity\Editor.
- */
-
 namespace Drupal\editor\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -16,6 +11,16 @@ use Drupal\editor\EditorInterface;
  * @ConfigEntityType(
  *   id = "editor",
  *   label = @Translation("Text Editor"),
+ *   label_collection = @Translation("Text Editors"),
+ *   label_singular = @Translation("text editor"),
+ *   label_plural = @Translation("text editors"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count text editor",
+ *     plural = "@count text editors",
+ *   ),
+ *   handlers = {
+ *     "access" = "Drupal\editor\EditorAccessControlHandler",
+ *   },
  *   entity_keys = {
  *     "id" = "format"
  *   },
@@ -51,14 +56,14 @@ class Editor extends ConfigEntityBase implements EditorInterface {
    *
    * @var array
    */
-  protected $settings = array();
+  protected $settings = [];
 
   /**
    * The structured array of image upload settings.
    *
    * @var array
    */
-  protected $image_upload = array();
+  protected $image_upload = [];
 
   /**
    * The filter format this text editor is associated with.

@@ -1,30 +1,33 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\serialization\Encoder\XmlEncoder.
- */
-
 namespace Drupal\serialization\Encoder;
 
 use Symfony\Component\Serializer\Encoder\EncoderInterface;
 use Symfony\Component\Serializer\Encoder\DecoderInterface;
 use Symfony\Component\Serializer\Encoder\XmlEncoder as BaseXmlEncoder;
+use Symfony\Component\Serializer\SerializerAwareInterface;
+use Symfony\Component\Serializer\SerializerAwareTrait;
 
 /**
  * Adds XML support for serializer.
  *
  * This acts as a wrapper class for Symfony's XmlEncoder so that it is not
  * implementing NormalizationAwareInterface, and can be normalized externally.
+ *
+ * @internal
+ *   This encoder should not be used directly. Rather, use the `serializer`
+ *   service.
  */
-class XmlEncoder implements EncoderInterface, DecoderInterface {
+class XmlEncoder implements SerializerAwareInterface, EncoderInterface, DecoderInterface {
+
+  use SerializerAwareTrait;
 
   /**
    * The formats that this Encoder supports.
    *
    * @var array
    */
-  static protected $format = array('xml');
+  static protected $format = ['xml'];
 
   /**
    * An instance of the Symfony XmlEncoder to perform the actual encoding.
@@ -42,6 +45,7 @@ class XmlEncoder implements EncoderInterface, DecoderInterface {
   public function getBaseEncoder() {
     if (!isset($this->baseEncoder)) {
       $this->baseEncoder = new BaseXmlEncoder();
+      $this->baseEncoder->setSerializer($this->serializer);
     }
 
     return $this->baseEncoder;
@@ -59,7 +63,7 @@ class XmlEncoder implements EncoderInterface, DecoderInterface {
   /**
    * {@inheritdoc}
    */
-  public function encode($data, $format, array $context = array()){
+  public function encode($data, $format, array $context = []) {
     return $this->getBaseEncoder()->encode($data, $format, $context);
   }
 
@@ -73,7 +77,7 @@ class XmlEncoder implements EncoderInterface, DecoderInterface {
   /**
    * {@inheritdoc}
    */
-  public function decode($data, $format, array $context = array()){
+  public function decode($data, $format, array $context = []) {
     return $this->getBaseEncoder()->decode($data, $format, $context);
   }
 
@@ -83,4 +87,5 @@ class XmlEncoder implements EncoderInterface, DecoderInterface {
   public function supportsDecoding($format) {
     return in_array($format, static::$format);
   }
+
 }
